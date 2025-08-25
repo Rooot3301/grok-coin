@@ -1,0 +1,49 @@
+{
+  "economy": {
+    "starting_balance": 25000,
+    "job_cooldown_minutes": 30,
+    "job_max_shifts_per_day": 3,
+    "jobs": {
+      "Banquier": { "salary": 70 },
+      "Médecin": { "salary": 65 },
+      "Commerçant": { "salary": 55 },
+      "Mineur": { "salary": 45 },
+      "Policier": { "salary": 50 }
+    },
+    "bank_interest_daily_pct": 0.003,
+    "loan_interest_daily_pct": 0.012,
+    "max_loan_gkc": 20000
+  },
+  "casino": {
+    "daily_loss_cap": 20000,
+    "fee_pct": 0.01
+  },
+  "roulette": {
+    "payouts": {
+      "number": 35,
+      "color": 1,
+      "parity": 1
+    }
+  },
+  "crypto": {
+    "dex_spread_pct": 0.005,
+    "daily_recenter_pct": 0.02,
+    "node_price": 15000,
+    "node_daily_yield": 220,
+    "node_daily_cost": 40
+    ,
+    "staking": {
+      "daily_yield_range": [0.003, 0.006]
+    }
+  },
+  "immo": {
+    "properties": [
+      { "id": "studio", "name": "Studio", "price": 8000, "rent": 120 },
+      { "id": "boutique", "name": "Boutique", "price": 25000, "rent": 450 },
+      { "id": "entrepot", "name": "Entrepôt", "price": 60000, "rent": 1100 },
+      { "id": "immeuble", "name": "Immeuble", "price": 180000, "rent": 3600 }
+    ],
+    "maintenance_pct": 0.05,
+    "tax_pct": 0.015
+  }
+}

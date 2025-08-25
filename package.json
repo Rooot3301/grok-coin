@@ -1,0 +1,16 @@
+{
+  "name": "grokcoin-bot",
+  "version": "1.0.0",
+  "description": "Bot Discord pour simuler une mini-économie RP avec casino, jobs et immobilier.",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "register:commands": "node src/register-commands.js"
+  },
+  "dependencies": {
+    "discord.js": "^14.9.0",
+    "better-sqlite3": "^8.5.3",
+    "dotenv": "^16.1.4"
+  }
+}
