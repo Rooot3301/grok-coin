@@ -103,18 +103,7 @@ export async function execute(interaction, db, config) {
 
   // Vérifier le plafond de pertes quotidien
   const event = getEvent();
-  let lossCap = config.casino.daily_loss_cap * 100;
-  if (event.effects && event.effects.casinoLossCapMultiplier) {
-    lossCap = Math.floor(lossCap * event.effects.casinoLossCapMultiplier);
-  }
-  
-  const currentLoss = db.getDailyLoss(uid);
-  if (currentLoss + stake > lossCap) {
-    return interaction.reply({ 
-      content: `Vous avez atteint votre plafond de pertes quotidien (${formatCents(lossCap)} GKC). Revenez demain !`, 
-      ephemeral: true 
-    });
-  }
+  // No loss cap - players can bet freely
 
   // Déduire la mise
   db.adjustBalance(uid, -stake);
@@ -295,7 +284,7 @@ async function calculatePokerPayout(interaction, gameState, uid) {
     payout = Math.floor(stake * (multiplier + 1) * (1 - feePct));
     db.adjustBalance(uid, payout);
   } else {
-    db.addDailyLoss(uid, stake);
+    // No daily loss tracking needed
   }
 
   const cardDisplay = hand.map(formatCard).join('  ');

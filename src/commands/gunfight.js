@@ -24,15 +24,7 @@ export async function execute(interaction, db, config) {
   }
   // Check daily loss cap for both players
   const event = getEvent();
-  let lossCap = config.casino.daily_loss_cap * 100;
-  if (event.effects && event.effects.casinoLossCapMultiplier) {
-    lossCap = Math.floor(lossCap * event.effects.casinoLossCapMultiplier);
-  }
-  const challengerLoss = db.getDailyLoss(challengerId);
-  const opponentLoss = db.getDailyLoss(targetUser.id);
-  if (challengerLoss + stake > lossCap || opponentLoss + stake > lossCap) {
-    return interaction.reply({ content: 'L\'un des joueurs a atteint son plafond de pertes quotidien.', ephermal: true });
-  }
+  // No loss cap - players can bet freely
   // Deduct stake from both
   db.adjustBalance(challengerId, -stake);
   db.adjustBalance(targetUser.id, -stake);
@@ -45,7 +37,7 @@ export async function execute(interaction, db, config) {
   const payout = Math.floor(totalStake * (1 - feePct));
   db.adjustBalance(winnerId, payout);
   // Update daily loss for loser
-  db.addDailyLoss(loserId, stake);
+  // No daily loss tracking needed
   const embed = new EmbedBuilder()
     .setTitle('Gunfight')
     .setColor(0xf44336)

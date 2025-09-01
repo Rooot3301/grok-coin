@@ -36,6 +36,7 @@ export async function execute(interaction, db, config) {
     message = `🎲 Le résultat est **${roll}** (seuil ${threshold}). Vous gagnez **${formatCents(payout - stake)} GKC** !`;
   } else {
     // Loss
+    // No daily loss tracking needed
     message = `🎲 Le résultat est **${roll}** (seuil ${threshold}). Vous perdez **${formatCents(stake)} GKC**.`;
   }
   const embed = new EmbedBuilder()

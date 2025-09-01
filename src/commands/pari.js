@@ -43,14 +43,7 @@ export async function execute(interaction, db, config) {
   }
   // Check daily loss cap
   const event = getEvent();
-  let lossCap = config.casino.daily_loss_cap * 100;
-  if (event.effects && event.effects.casinoLossCapMultiplier) {
-    lossCap = Math.floor(lossCap * event.effects.casinoLossCapMultiplier);
-  }
-  const currentLoss = db.getDailyLoss(uid);
-  if (currentLoss + stake > lossCap) {
-    return interaction.reply({ content: `Plafond de pertes quotidien atteint (${formatCents(lossCap)} GKC). Revenez demain.`, ephermal: true });
-  }
+  // No loss cap - players can bet freely
   // Deduct stake
   db.adjustBalance(uid, -stake);
   // Determine winner with probability weighted by inverse odds
@@ -66,7 +59,7 @@ export async function execute(interaction, db, config) {
     db.adjustBalance(uid, payout);
     message = `🏆 ${match.name}\nLe vainqueur est **${winner}** ! Vous gagnez **${formatCents(payout - stake)} GKC** !`;
   } else {
-    db.addDailyLoss(uid, stake);
+    // No daily loss tracking needed
     message = `😞 ${match.name}\nLe vainqueur est **${winner}**. Vous perdez **${formatCents(stake)} GKC**.`;
   }
   const embed = new EmbedBuilder()

@@ -41,17 +41,7 @@ export async function execute(interaction, db, config) {
   if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', ephermal: true });
   if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', ephermal: true });
   const event = getEvent();
-  let lossCap = config.casino.daily_loss_cap * 100;
-  if (event.effects && event.effects.casinoLossCapMultiplier) {
-    lossCap = Math.floor(lossCap * event.effects.casinoLossCapMultiplier);
-  }
-  const currentLoss = db.getDailyLoss(uid);
-  if (currentLoss + stake > lossCap) {
-    return interaction.reply({ content: `Plafond de pertes quotidien atteint (${formatCents(lossCap)} GKC). Revenez demain.`, ephermal: true });
-  }
-  // Deduct stake
-  db.adjustBalance(uid, -stake);
-  // Spin the wheel
+  // No loss cap - players can bet freely
   const outcomeIndex = Math.floor(Math.random() * wheelSequence.length);
   const outcomeNumber = wheelSequence[outcomeIndex];
   const outcomeColor = getColor(outcomeNumber);
@@ -86,7 +76,7 @@ export async function execute(interaction, db, config) {
     db.adjustBalance(uid, payout);
     message = `🎡 La bille atterrit sur **${outcomeNumber}** (${outcomeColor === 'green' ? 'Vert' : outcomeColor === 'red' ? 'Rouge' : 'Noir'}). Vous gagnez **${formatCents(payout - stake)} GKC** !`;
   } else {
-    db.addDailyLoss(uid, stake);
+    // No daily loss tracking needed
     message = `🎡 La bille atterrit sur **${outcomeNumber}** (${outcomeColor === 'green' ? 'Vert' : outcomeColor === 'red' ? 'Rouge' : 'Noir'}). Vous perdez **${formatCents(stake)} GKC**.`;
   }
   // Build a simple visual representation: show eight numbers around the outcome

@@ -78,18 +78,7 @@ export async function execute(interaction, db, config) {
 
   // Vérifier le plafond de pertes quotidien
   const event = getEvent();
-  let lossCap = config.casino.daily_loss_cap * 100;
-  if (event.effects && event.effects.casinoLossCapMultiplier) {
-    lossCap = Math.floor(lossCap * event.effects.casinoLossCapMultiplier);
-  }
-  
-  const currentLoss = db.getDailyLoss(uid);
-  if (currentLoss + stake > lossCap) {
-    return interaction.reply({ 
-      content: `Vous avez atteint votre plafond de pertes quotidien (${formatCents(lossCap)} GKC). Revenez demain !`, 
-      ephemeral: true 
-    });
-  }
+  // No loss cap - players can bet freely
 
   // Déduire la mise
   db.adjustBalance(uid, -stake);
@@ -281,7 +270,7 @@ async function handleGameEnd(interaction, database, configuration, gameState, ui
 
   if (playerValue > 21) {
     result = '💥 **BUST !** Vous avez dépassé 21.';
-    db.addDailyLoss(uid, gameState.stake);
+    // No daily loss tracking needed
   } else if (dealerValue > 21) {
     result = '🎉 **VICTOIRE !** Le croupier a fait bust.';
     payout = Math.floor(gameState.stake * 2 * (1 - feePct));
@@ -292,7 +281,7 @@ async function handleGameEnd(interaction, database, configuration, gameState, ui
     color = 0xffd700;
   } else if (dealerBJ && !playerBJ) {
     result = '😞 **DÉFAITE** - Le croupier a un blackjack.';
-    db.addDailyLoss(uid, gameState.stake);
+    // No daily loss tracking needed
   } else if (playerBJ && dealerBJ) {
     result = '🤝 **ÉGALITÉ** - Double blackjack.';
     payout = gameState.stake;
@@ -303,7 +292,7 @@ async function handleGameEnd(interaction, database, configuration, gameState, ui
     color = 0x4caf50;
   } else if (dealerValue > playerValue) {
     result = '😞 **DÉFAITE** - La main du croupier est supérieure.';
-    db.addDailyLoss(uid, gameState.stake);
+    // No daily loss tracking needed
   } else {
     result = '🤝 **ÉGALITÉ** - Même valeur.';
     payout = gameState.stake;

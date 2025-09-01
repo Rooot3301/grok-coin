@@ -745,6 +745,9 @@ export default {
   adjustCryptoStaking,
   updateVipTier,
   getVipTier,
+  // Daily loss functions (removed caps but kept functions for compatibility)
+  getDailyLoss: (userId) => 0, // Always return 0 since no caps
+  addDailyLoss: (userId, amount) => {}, // Do nothing since no caps
   // Settings and news functions
   setSetting,
   getSetting,

@@ -37,6 +37,7 @@ export async function execute(interaction, db, config) {
     message = `🎉 La pièce retombe sur **${outcome}** ! Vous gagnez **${formatCents(payout - stake)} GKC** (payout ${formatCents(payout)}).`;
   } else {
     // Loss: stake is lost
+    // No daily loss tracking needed
     message = `😢 La pièce retombe sur **${outcome}**. Vous perdez **${formatCents(stake)} GKC**.`;
   }
   const embed = new EmbedBuilder()

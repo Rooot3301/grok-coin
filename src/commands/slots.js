@@ -120,12 +120,7 @@ export async function execute(interaction, db, config) {
   }
   
   const currentLoss = db.getDailyLoss(uid);
-  if (currentLoss + (stake * autoSpins) > lossCap) {
-    return interaction.reply({ 
-      content: `Cette mise dépasserait votre plafond de pertes quotidien (${formatCents(lossCap)} GKC). Revenez demain !`, 
-      ephemeral: true 
-    });
-  }
+  // No loss cap - players can bet freely
 
   if (autoSpins === 1) {
     return playSingleSpin(interaction, db, config, uid, stake);
@@ -157,7 +152,7 @@ async function playSingleSpin(interaction, db, config, uid, stake) {
     
     db.adjustBalance(uid, totalPayout);
   } else {
-    db.addDailyLoss(uid, stake);
+    // No daily loss tracking needed
     winDescription = 'Aucune combinaison gagnante';
   }
 
@@ -245,7 +240,7 @@ async function playAutoSpins(interaction, db, config, uid, stake, spins) {
       const bestWin = wins.reduce((best, current) => current.multiplier > best.multiplier ? current : best);
       results.push(`Tour ${i + 1}: ${bestWin.symbol.emoji} x${bestWin.count} (+${formatCents(spinPayout - stake)} GKC)`);
     } else {
-      db.addDailyLoss(uid, stake);
+      // No daily loss tracking needed
       totalLoss += stake;
       results.push(`Tour ${i + 1}: Aucun gain (-${formatCents(stake)} GKC)`);
     }
