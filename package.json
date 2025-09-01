@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node src/index.js",
     "register:commands": "node src/register-commands.js",
-    "dev": "node --watch src/index.js"
+    "dev": "node --watch src/index.js",
+    "test": "node src/test.js",
+    "backup": "cp grokcoin.db backup_$(date +%Y%m%d_%H%M%S).db"
   },
   "dependencies": {
     "discord.js": "^14.9.0",

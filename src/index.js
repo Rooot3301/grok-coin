@@ -37,7 +37,7 @@ for (const file of commandFiles) {
   }
 }
 
-client.once('ready', () => {
+client.once('clientReady', () => {
   console.log(`Bot connecté en tant que ${client.user.tag}`);
 
   // Mettre à jour la présence riche dynamiquement

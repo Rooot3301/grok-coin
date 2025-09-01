@@ -110,7 +110,7 @@ export async function execute(interaction, db, config) {
 
   collector.on('collect', async i => {
     if (i.user.id !== uid) {
-      return i.reply({ content: 'Ce dashboard n\'est pas pour vous !', ephemeral: true });
+      return i.reply({ content: 'Ce dashboard n\'est pas pour vous !', flags: 64 });
     }
 
     const action = i.customId.split('_')[1];
@@ -127,7 +127,7 @@ export async function execute(interaction, db, config) {
       case 'help': commandName = 'aide'; break;
     }
 
-    await i.reply({ content: `🚀 Utilisez la commande \`/${commandName}\` pour accéder à cette section !`, ephemeral: true });
+    await i.reply({ content: `🚀 Utilisez la commande \`/${commandName}\` pour accéder à cette section !`, flags: 64 });
   });
 
   collector.on('end', () => {

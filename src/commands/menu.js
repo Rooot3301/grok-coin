@@ -26,44 +26,37 @@ export async function execute(interaction, db, config) {
       {
         label: 'Économie & Finances',
         description: 'Profil, banque, travail, paiements',
-        value: 'economy',
-        emoji: '💰'
+        value: 'economy'
       },
       {
         label: 'Trading BitGrok',
         description: 'Crypto, staking, graphiques, DeFi',
-        value: 'crypto',
-        emoji: '₿'
+        value: 'crypto'
       },
       {
         label: 'Casino VIP',
         description: 'Blackjack, poker, slots, roulette',
-        value: 'casino',
-        emoji: '🎰'
+        value: 'casino'
       },
       {
         label: 'Immobilier',
         description: 'Acheter, gérer, revenus passifs',
-        value: 'immo',
-        emoji: '🏠'
+        value: 'immo'
       },
       {
         label: 'Guildes & Alliances',
         description: 'Créer, rejoindre, guerres, diplomatie',
-        value: 'guild',
-        emoji: '🏛️'
+        value: 'guild'
       },
       {
         label: 'Événements & News',
         description: 'Actualités, événements économiques',
-        value: 'events',
-        emoji: '🔥'
+        value: 'events'
       },
       {
         label: 'Aide & Guides',
         description: 'Tutoriels, commandes, support',
-        value: 'help',
-        emoji: '❓'
+        value: 'help'
       }
     ]);
 
@@ -78,7 +71,7 @@ export async function execute(interaction, db, config) {
 
   collector.on('collect', async i => {
     if (i.user.id !== interaction.user.id) {
-      return i.reply({ content: 'Ce menu n\'est pas pour vous !', ephemeral: true });
+      return i.reply({ content: 'Ce menu n\'est pas pour vous !', flags: 64 });
     }
 
     const category = i.values[0];
@@ -138,7 +131,9 @@ export async function execute(interaction, db, config) {
           .addFields(
             { name: '`/immo liste`', value: 'Biens disponibles à l\'achat', inline: true },
             { name: '`/immo acheter`', value: 'Acheter un bien immobilier', inline: true },
-            { name: '`/immo mes_biens`', value: 'Vos propriétés et revenus', inline: true }
+            { name: '`/immo mes_biens`', value: 'Vos propriétés et revenus', inline: true },
+            { name: '`/immo loyer`', value: 'Payer votre loyer', inline: true },
+            { name: '`/immo statut`', value: 'Statut de votre logement', inline: true }
           );
         break;
         
