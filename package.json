@@ -6,11 +6,25 @@
   "type": "module",
   "scripts": {
     "start": "node src/index.js",
-    "register:commands": "node src/register-commands.js"
+    "register:commands": "node src/register-commands.js",
+    "dev": "node --watch src/index.js"
   },
   "dependencies": {
     "discord.js": "^14.9.0",
     "better-sqlite3": "^8.5.3",
     "dotenv": "^16.1.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "discord",
+    "bot",
+    "economy",
+    "crypto",
+    "casino",
+    "guilds",
+    "pvp"
+  ]
   }
 }

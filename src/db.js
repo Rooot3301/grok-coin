@@ -81,6 +81,10 @@ function init() {
   if (!colNames.includes('total_wagered')) {
     db.prepare('ALTER TABLE users ADD COLUMN total_wagered INTEGER NOT NULL DEFAULT 0').run();
   }
+  // guild_id tracks which guild the user belongs to
+  if (!colNames.includes('guild_id')) {
+    db.prepare('ALTER TABLE users ADD COLUMN guild_id INTEGER DEFAULT NULL').run();
+  }
 
   db.prepare(`CREATE TABLE IF NOT EXISTS loans (
     user_id TEXT PRIMARY KEY,
@@ -169,6 +173,38 @@ function init() {
     created_at INTEGER NOT NULL,
     FOREIGN KEY (guild1_id) REFERENCES guilds(id) ON DELETE CASCADE,
     FOREIGN KEY (guild2_id) REFERENCES guilds(id) ON DELETE CASCADE
+  )`).run();
+
+  // Create guild_contributions table for tracking member contributions
+  db.prepare(`CREATE TABLE IF NOT EXISTS guild_contributions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
+    amount INTEGER NOT NULL,
+    timestamp INTEGER NOT NULL,
+    FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )`).run();
+
+  // Create guild_attacks table for PvP tracking
+  db.prepare(`CREATE TABLE IF NOT EXISTS guild_attacks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    attacker_guild_id INTEGER NOT NULL,
+    target_guild_id INTEGER NOT NULL,
+    attack_type TEXT NOT NULL,
+    success BOOLEAN NOT NULL,
+    timestamp INTEGER NOT NULL,
+    FOREIGN KEY (attacker_guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
+    FOREIGN KEY (target_guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+  )`).run();
+
+  // Create guild_defenses table for tracking active defenses
+  db.prepare(`CREATE TABLE IF NOT EXISTS guild_defenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild_id INTEGER NOT NULL,
+    defense_type TEXT NOT NULL,
+    expires_at INTEGER NOT NULL,
+    FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
   )`).run();
 
   // Insert default properties if not present
@@ -520,10 +556,12 @@ function getAllGuilds() {
 function joinGuild(userId, guildId) {
   const now = Date.now();
   db.prepare('INSERT INTO guild_members (guild_id, user_id, rank, joined_at) VALUES (?, ?, ?, ?)').run(guildId, userId, 'member', now);
+  db.prepare('UPDATE users SET guild_id = ? WHERE id = ?').run(guildId, userId);
 }
 
 function leaveGuild(userId) {
   db.prepare('DELETE FROM guild_members WHERE user_id = ?').run(userId);
+  db.prepare('UPDATE users SET guild_id = NULL WHERE id = ?').run(userId);
 }
 
 function getGuildMembers(guildId) {
@@ -576,6 +614,68 @@ function getGuildAlliances(guildId) {
     JOIN guilds g2 ON ga.guild2_id = g2.id
     WHERE (ga.guild1_id = ? OR ga.guild2_id = ?) AND ga.status = 'active'
   `).all(guildId, guildId, guildId);
+}
+
+// New guild PvP functions
+function declareWar(attackerGuildId, defenderGuildId) {
+  const now = Date.now();
+  const endsAt = now + (7 * 24 * 60 * 60 * 1000); // 7 days
+  db.prepare('INSERT INTO guild_wars (attacker_id, defender_id, started_at, ends_at) VALUES (?, ?, ?, ?)').run(attackerGuildId, defenderGuildId, now, endsAt);
+}
+
+function getWarBetweenGuilds(guild1Id, guild2Id) {
+  return db.prepare(`
+    SELECT * FROM guild_wars 
+    WHERE ((attacker_id = ? AND defender_id = ?) OR (attacker_id = ? AND defender_id = ?)) 
+    AND status = 'active' AND ends_at > ?
+  `).get(guild1Id, guild2Id, guild2Id, guild1Id, Date.now());
+}
+
+function recordGuildAttack(attackerGuildId, targetGuildId, attackType, success) {
+  const now = Date.now();
+  db.prepare('INSERT INTO guild_attacks (attacker_guild_id, target_guild_id, attack_type, success, timestamp) VALUES (?, ?, ?, ?, ?)').run(attackerGuildId, targetGuildId, attackType, success, now);
+}
+
+function getGuildRecentAttacks(guildId, hours = 24) {
+  const since = Date.now() - (hours * 60 * 60 * 1000);
+  return db.prepare('SELECT * FROM guild_attacks WHERE (attacker_guild_id = ? OR target_guild_id = ?) AND timestamp > ?').all(guildId, guildId, since);
+}
+
+function activateGuildDefense(guildId, defenseType, durationHours) {
+  const expiresAt = Date.now() + (durationHours * 60 * 60 * 1000);
+  db.prepare('INSERT INTO guild_defenses (guild_id, defense_type, expires_at) VALUES (?, ?, ?)').run(guildId, defenseType, expiresAt);
+}
+
+function hasActiveDefense(guildId, defenseType) {
+  const now = Date.now();
+  const defense = db.prepare('SELECT * FROM guild_defenses WHERE guild_id = ? AND defense_type = ? AND expires_at > ?').get(guildId, defenseType, now);
+  return !!defense;
+}
+
+function recordGuildContribution(guildId, userId, amount) {
+  const now = Date.now();
+  db.prepare('INSERT INTO guild_contributions (guild_id, user_id, amount, timestamp) VALUES (?, ?, ?, ?)').run(guildId, userId, amount, now);
+}
+
+function getGuildContributions(guildId, limit = 10) {
+  return db.prepare('SELECT * FROM guild_contributions WHERE guild_id = ? ORDER BY timestamp DESC LIMIT ?').all(guildId, limit);
+}
+
+function proposeAlliance(guild1Id, guild2Id) {
+  const now = Date.now();
+  db.prepare('INSERT INTO guild_alliances (guild1_id, guild2_id, status, created_at) VALUES (?, ?, ?, ?)').run(guild1Id, guild2Id, 'pending', now);
+}
+
+function getAllianceBetweenGuilds(guild1Id, guild2Id) {
+  return db.prepare(`
+    SELECT * FROM guild_alliances 
+    WHERE ((guild1_id = ? AND guild2_id = ?) OR (guild1_id = ? AND guild2_id = ?)) 
+    AND status IN ('pending', 'active')
+  `).get(guild1Id, guild2Id, guild2Id, guild1Id);
+}
+
+function getGuild(guildId) {
+  return db.prepare('SELECT * FROM guilds WHERE id = ?').get(guildId);
 }
 
 export default {
@@ -632,5 +732,17 @@ export default {
   adjustGuildTreasury,
   addGuildExperience,
   getGuildWars,
-  getGuildAlliances
+  getGuildAlliances,
+  // New PvP functions
+  declareWar,
+  getWarBetweenGuilds,
+  recordGuildAttack,
+  getGuildRecentAttacks,
+  activateGuildDefense,
+  hasActiveDefense,
+  recordGuildContribution,
+  getGuildContributions,
+  proposeAlliance,
+  getAllianceBetweenGuilds,
+  getGuild
 };
