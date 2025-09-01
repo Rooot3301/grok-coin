@@ -1,5 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } from 'discord.js';
-import fs from 'fs';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 /**
  * Commande principale du casino. Elle affiche un menu d'aperçu des jeux disponibles et
@@ -29,7 +28,7 @@ export async function execute(interaction, db, config) {
       '🎰 **/slots** → Machines à sous premium\n' +
       '🎴 **/baccarat** → Baccarat authentique\n' +
       '🏈 **/pari** → Paris sportifs fictifs\n\n' +
-      '**Plus de plafonds de pertes - Jouez librement !**'
+      '**🚀 Plus de plafonds de pertes - Jouez librement !**'
     )
     .addFields(
       { 
@@ -52,14 +51,10 @@ export async function execute(interaction, db, config) {
     .setFooter({ text: '🎰 GrokCasino • Jeu responsable' })
     .setTimestamp();
   
-  // Joindre l'image du casino pour améliorer l'esthétique
-  try {
-    const imageBuffer = fs.readFileSync(new URL('../assets/casino.png', import.meta.url));
-    const file = new AttachmentBuilder(imageBuffer, { name: 'casino.png' });
-    embed.setImage('attachment://casino.png');
-    return interaction.reply({ embeds: [embed], files: [file] });
-  } catch (err) {
-    // Si l'image ne peut être lue (ex: fichier manquant), renvoyer sans fichier
+  // Use editReply if deferred, otherwise reply
+  if (interaction.deferred) {
+    return interaction.editReply({ embeds: [embed] });
+  } else {
     return interaction.reply({ embeds: [embed] });
   }
 }

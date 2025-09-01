@@ -23,7 +23,7 @@ export async function execute(interaction, db, config) {
   // Page 1 : Économie
   pages.push(new EmbedBuilder()
     .setTitle('💰 Système Économique')
-    .setColor(0x00ff88)
+    .setColor(0x3498db)
     .setDescription('**GrokCoin (Ǥ)** est votre monnaie principale !\n\n**Comment gagner de l\'argent :**\n• 💼 **Travaillez** : Choisissez parmi 8 métiers (PDG, Trader, Développeur...)\n• 🏠 **Investissez** : Achetez des biens immobiliers\n• ₿ **Tradez** : Spéculez sur le BitGrok\n• 🎰 **Tentez** votre chance au casino\n\n**Commandes essentielles :**\n`/start` - Commencer\n`/profil` - Votre situation\n`/job` - Choisir un métier\n`/banque` - Gérer vos finances')
     .addFields(
       { name: '💼 Métiers Populaires', value: '👔 PDG : 500 Ǥ/shift\n📈 Trader : 350 Ǥ/shift\n💻 Développeur : 280 Ǥ/shift', inline: true },
@@ -47,7 +47,7 @@ export async function execute(interaction, db, config) {
   pages.push(new EmbedBuilder()
     .setTitle('🎰 Casino VIP')
     .setColor(0xe74c3c)
-    .setDescription('**Le casino le plus avancé de Discord !**\n\n**Jeux disponibles :**\n🃏 **Blackjack** - Interactif avec boutons\n🎰 **Slots** - Machines à sous premium\n🎴 **Baccarat** - Jeu authentique\n🃏 **Poker** - Video Poker professionnel\n🎡 **Roulette** - Européenne classique\n\n**Plus de limites !** Misez autant que vous voulez !')
+    .setDescription('**Le casino le plus avancé de Discord !**\n\n**Jeux disponibles :**\n🃏 **Blackjack** - Interactif avec boutons\n🎰 **Slots** - Machines à sous premium\n🎴 **Baccarat** - Jeu authentique\n🃏 **Poker** - Video Poker professionnel\n🎡 **Roulette** - Européenne classique\n\n**🚀 Plus de limites !** Misez autant que vous voulez !')
     .addFields(
       { name: '💎 Système VIP', value: '🥉 Bronze : +2% gains\n🥈 Silver : +5% gains\n🥇 Gold : +8% gains\n💎 Diamond : +12% gains', inline: true },
       { name: '🎯 Jeux Populaires', value: '🃏 Blackjack interactif\n🎰 Slots avec 5 lignes\n🎴 Baccarat authentique', inline: true }
@@ -68,31 +68,33 @@ export async function execute(interaction, db, config) {
     .setFooter({ text: 'Page 5/5 • Dominez GrokCity' }));
 
   let page = 0;
-  const prevButton = new ButtonBuilder()
-    .setCustomId('guide_prev')
-    .setLabel('Précédent')
-    .setStyle(ButtonStyle.Secondary);
-  const nextButton = new ButtonBuilder()
-    .setCustomId('guide_next')
-    .setLabel('Suivant')
-    .setStyle(ButtonStyle.Primary);
-  const startButton = new ButtonBuilder()
-    .setCustomId('guide_start')
-    .setLabel('Commencer l\'aventure !')
-    .setStyle(ButtonStyle.Success);
-
-  // Fonction pour mettre à jour les boutons selon la page actuelle
-  function getRow() {
+  
+  function createButtons() {
     return new ActionRowBuilder().addComponents(
-      prevButton.setDisabled(page === 0),
-      nextButton.setDisabled(page === pages.length - 1),
-      startButton.setDisabled(page !== pages.length - 1)
+      new ButtonBuilder()
+        .setCustomId('guide_prev')
+        .setLabel('Précédent')
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(page === 0),
+      new ButtonBuilder()
+        .setCustomId('guide_next')
+        .setLabel('Suivant')
+        .setStyle(ButtonStyle.Primary)
+        .setDisabled(page === pages.length - 1),
+      new ButtonBuilder()
+        .setCustomId('guide_start')
+        .setLabel('Commencer l\'aventure !')
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(page !== pages.length - 1)
     );
   }
 
-  await interaction.reply({ embeds: [pages[page]], components: [getRow()] });
-  const message = await interaction.fetchReply();
-  const collector = message.createMessageComponentCollector({ 
+  // Use editReply if deferred, otherwise reply
+  const response = interaction.deferred 
+    ? await interaction.editReply({ embeds: [pages[page]], components: [createButtons()] })
+    : await interaction.reply({ embeds: [pages[page]], components: [createButtons()] });
+
+  const collector = response.createMessageComponentCollector({ 
     componentType: ComponentType.Button, 
     time: 5 * 60 * 1000 
   });
@@ -104,10 +106,10 @@ export async function execute(interaction, db, config) {
     
     if (i.customId === 'guide_prev' && page > 0) {
       page--;
-      await i.update({ embeds: [pages[page]], components: [getRow()] });
+      await i.update({ embeds: [pages[page]], components: [createButtons()] });
     } else if (i.customId === 'guide_next' && page < pages.length - 1) {
       page++;
-      await i.update({ embeds: [pages[page]], components: [getRow()] });
+      await i.update({ embeds: [pages[page]], components: [createButtons()] });
     } else if (i.customId === 'guide_start') {
       // Fin du guide : inviter l'utilisateur à exécuter /start
       const finalEmbed = new EmbedBuilder()
@@ -121,14 +123,20 @@ export async function execute(interaction, db, config) {
       await i.update({ embeds: [finalEmbed], components: [] });
       collector.stop('started');
     } else {
-      i.deferUpdate();
+      await i.deferUpdate();
     }
   });
 
   collector.on('end', (collected, reason) => {
     if (reason !== 'started') {
       // Désactiver les boutons après expiration
-      message.edit({ components: [] }).catch(() => {});
+      const disabledButtons = new ActionRowBuilder().addComponents(
+        ...createButtons().components.map(button => ButtonBuilder.from(button).setDisabled(true))
+      );
+      
+      if (interaction.deferred) {
+        interaction.editReply({ components: [disabledButtons] }).catch(() => {});
+      }
     }
   });
 }

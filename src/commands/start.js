@@ -1,5 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
-import { formatGrokCoin, SYMBOLS, COLORS } from '../utils/symbols.js';
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
   .setName('start')
@@ -10,13 +9,13 @@ export async function execute(interaction, db, config) {
   const user = db.getUser(uid);
   
   const embed = new EmbedBuilder()
-    .setTitle(`💎 Bienvenue dans GrokCity !`)
-    .setColor(COLORS.SUCCESS)
-    .setDescription(`**Salut ${interaction.user.username} !** 👋\n\nVous venez de rejoindre la ville la plus prospère du monde virtuel !\n\n**Votre capital de départ :** ${formatGrokCoin(user.balance)}`)
+    .setTitle('💎 Bienvenue dans GrokCity !')
+    .setColor(0x00ff88)
+    .setDescription(`**Salut ${interaction.user.username} !** 👋\n\nVous venez de rejoindre la ville la plus prospère du monde virtuel !\n\n**Votre capital de départ :** ${(user.balance / 100).toFixed(2)} Ǥ`)
     .addFields(
       { 
-        name: `🚀 Que faire maintenant ?`, 
-        value: `💼 Choisir un **métier** prestigieux\n₿ Trader du **BitGrok**\n🏠 Investir dans l'**immobilier**\n🎰 Tenter votre chance au **casino**`, 
+        name: '🚀 Que faire maintenant ?', 
+        value: '💼 Choisir un **métier** prestigieux\n₿ Trader du **BitGrok**\n🏠 Investir dans l\'**immobilier**\n🎰 Tenter votre chance au **casino**', 
         inline: false 
       }
     )
@@ -44,5 +43,44 @@ export async function execute(interaction, db, config) {
         .setStyle(ButtonStyle.Danger)
     );
 
-  await interaction.reply({ embeds: [embed], components: [row] });
+  // Use editReply if deferred, otherwise reply
+  const response = interaction.deferred 
+    ? await interaction.editReply({ embeds: [embed], components: [row] })
+    : await interaction.reply({ embeds: [embed], components: [row] });
+
+  // Handle button interactions
+  const collector = response.createMessageComponentCollector({
+    componentType: ComponentType.Button,
+    time: 60000
+  });
+
+  collector.on('collect', async i => {
+    if (i.user.id !== uid) {
+      return i.reply({ content: 'Ce menu n\'est pas pour vous !', flags: 64 });
+    }
+
+    const action = i.customId.split('_')[1];
+    let commandName = '';
+    
+    switch (action) {
+      case 'profile': commandName = 'profil'; break;
+      case 'job': commandName = 'job'; break;
+      case 'crypto': commandName = 'crypto'; break;
+      case 'casino': commandName = 'casino'; break;
+    }
+
+    await i.reply({ content: `🚀 Utilisez la commande \`/${commandName}\` pour accéder à cette section !`, flags: 64 });
+  });
+
+  collector.on('end', () => {
+    // Remove buttons after timeout
+    const disabledRow = new ActionRowBuilder()
+      .addComponents(
+        ...row.components.map(button => ButtonBuilder.from(button).setDisabled(true))
+      );
+    
+    if (interaction.deferred) {
+      interaction.editReply({ embeds: [embed], components: [disabledRow] }).catch(() => {});
+    }
+  });
 }

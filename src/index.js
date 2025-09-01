@@ -62,18 +62,45 @@ client.once('clientReady', () => {
 
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand()) return;
+  
   const command = commands.get(interaction.commandName);
   if (!command) return;
+  
   try {
+    // Defer reply immediately to prevent timeout
+    if (!interaction.replied && !interaction.deferred) {
+      await interaction.deferReply();
+    }
+    
     await command.execute(interaction, db, config);
   } catch (error) {
-    console.error(error);
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: 'Une erreur est survenue lors de l\'exécution de la commande.', ephemeral: true });
-    } else {
-      await interaction.reply({ content: 'Une erreur est survenue lors de l\'exécution de la commande.', ephemeral: true });
+    console.error(`Erreur dans la commande ${interaction.commandName}:`, error);
+    
+    try {
+      const errorMessage = {
+        content: '❌ Une erreur est survenue lors de l\'exécution de la commande.',
+        flags: 64
+      };
+      
+      if (interaction.deferred) {
+        await interaction.editReply(errorMessage);
+      } else if (!interaction.replied) {
+        await interaction.reply(errorMessage);
+      }
+    } catch (followUpError) {
+      console.error('Erreur lors de l\'envoi du message d\'erreur:', followUpError);
     }
   }
+});
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
 });
 
 client.login(token);
