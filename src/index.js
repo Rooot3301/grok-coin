@@ -103,28 +103,6 @@ client.on('interactionCreate', async interaction => {
     }
   }
 });
-  
-  try {
-    await command.execute(interaction, db, config);
-  } catch (error) {
-    console.error(`❌ Erreur commande ${interaction.commandName}:`, error.message);
-    
-    const errorMessage = {
-      content: '❌ Une erreur est survenue lors de l\'exécution de la commande.',
-      flags: 64
-    };
-    
-    try {
-      if (interaction.deferred) {
-        await interaction.editReply(errorMessage);
-      } else if (!interaction.replied) {
-        await interaction.reply(errorMessage);
-      }
-    } catch (followUpError) {
-      console.error('Erreur lors de l\'envoi du message d\'erreur:', followUpError.message);
-    }
-  }
-});
 
 // Error handling
 process.on('unhandledRejection', (reason, promise) => {
