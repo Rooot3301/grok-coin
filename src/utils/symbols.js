@@ -7,6 +7,8 @@ export const SYMBOLS = {
   // Économie
   BANK: '🏦',
   WALLET: '💰',
+  BRIEFCASE: '💼',
+  USERS: '👥',
   CHART_UP: '📈',
   CHART_DOWN: '📉',
   MONEY_BAG: '💰',
@@ -32,6 +34,7 @@ export const SYMBOLS = {
   WARNING: '⚠️',
   INFO: 'ℹ️',
   LOADING: '⏳',
+  ROCKET: '🚀',
   
   // Rangs VIP
   VIP_BRONZE: '🥉',
@@ -42,7 +45,6 @@ export const SYMBOLS = {
   // Événements
   BULL: '🐂',
   BEAR: '🐻',
-  ROCKET: '🚀',
   CRASH: '💥',
   FIRE: '🔥',
   ICE: '🧊'

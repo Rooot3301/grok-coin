@@ -1,29 +1,52 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import { formatGrokCoin, SYMBOLS, COLORS } from '../utils/symbols.js';
 
-/**
- * Commande de démarrage : crée un compte pour l'utilisateur s'il n'existe pas et affiche un message de bienvenue.
- */
 export const data = new SlashCommandBuilder()
   .setName('start')
-  .setDescription('Démarrer votre aventure GrokCoin et obtenir votre bonus de départ');
+  .setDescription('🚀 Commencer votre aventure dans GrokCity');
 
 export async function execute(interaction, db, config) {
   const uid = interaction.user.id;
-  // getUser crée l'utilisateur s'il n'existe pas
   const user = db.getUser(uid);
-  const starting = config.economy.starting_balance || 0;
+  
   const embed = new EmbedBuilder()
     .setTitle(`${SYMBOLS.DIAMOND} Bienvenue dans GrokCity !`)
     .setColor(COLORS.SUCCESS)
-    .setDescription(`${SYMBOLS.ROCKET} Bienvenue **${interaction.user.username}** dans l'économie virtuelle la plus avancée !\n\n${SYMBOLS.GROKCOIN} Vous commencez avec **${formatGrokCoin(user.balance)}** pour débuter votre empire financier.\n\n${SYMBOLS.INFO} Explorez les métiers prestigieux, investissez dans l'immobilier, tradez le BitGrok et tentez votre chance au casino !`)
+    .setDescription(`**Salut ${interaction.user.username} !** 👋\n\nVous venez de rejoindre la ville la plus prospère du monde virtuel !\n\n${SYMBOLS.GROKCOIN} **Votre capital de départ :** ${formatGrokCoin(user.balance)}`)
     .addFields(
-      { name: `${SYMBOLS.WALLET} Solde Initial`, value: formatGrokCoin(user.balance), inline: true },
-      { name: `${SYMBOLS.BITGROK} BitGrok`, value: 'Tradez la crypto révolutionnaire', inline: true },
-      { name: `${SYMBOLS.CASINO} Casino VIP`, value: 'Jeux immersifs et récompenses', inline: true },
-      { name: `${SYMBOLS.SUCCESS} Commandes Essentielles`, value: '`/profil` • `/job` • `/crypto` • `/casino` • `/immo` • `/guild`', inline: false }
+      { 
+        name: `${SYMBOLS.ROCKET} Que faire maintenant ?`, 
+        value: `${SYMBOLS.BRIEFCASE} Choisir un **métier** prestigieux\n${SYMBOLS.BITGROK} Trader du **BitGrok**\n${SYMBOLS.HOUSE} Investir dans l'**immobilier**\n${SYMBOLS.CASINO} Tenter votre chance au **casino**`, 
+        inline: false 
+      }
     )
-    .setFooter({ text: 'GrokCity • Votre succès commence maintenant • Investissez intelligemment' })
+    .setImage('https://images.pexels.com/photos/3184291/pexels-photo-3184291.jpeg?auto=compress&cs=tinysrgb&w=1200&h=400')
+    .setFooter({ text: '💎 GrokCity • Votre empire commence ici', iconURL: 'https://images.pexels.com/photos/844124/pexels-photo-844124.jpeg?auto=compress&cs=tinysrgb&w=32&h=32' })
     .setTimestamp();
-  await interaction.reply({ embeds: [embed] });
+
+  const row = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('quick_profile')
+        .setLabel('Mon Profil')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji(SYMBOLS.WALLET),
+      new ButtonBuilder()
+        .setCustomId('quick_job')
+        .setLabel('Travailler')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji(SYMBOLS.BRIEFCASE),
+      new ButtonBuilder()
+        .setCustomId('quick_crypto')
+        .setLabel('BitGrok')
+        .setStyle(ButtonStyle.Secondary)
+        .setEmoji(SYMBOLS.BITGROK),
+      new ButtonBuilder()
+        .setCustomId('quick_casino')
+        .setLabel('Casino')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji(SYMBOLS.CASINO)
+    );
+
+  await interaction.reply({ embeds: [embed], components: [row] });
 }
