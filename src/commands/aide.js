@@ -14,8 +14,9 @@ export async function execute(interaction) {
     .setDescription('Voici les commandes principales organisées par thème :')
     .addFields(
       { name: '💰 Économie', value: '/start, /profil, /job, /banque, /dex, /stake, /node, /immo, /payer', inline: false },
-      { name: '🎰 Casino', value: '/casino, /coinflip, /dice, /roulette, /pari', inline: false },
+      { name: '🎰 Casino', value: '/casino, /coinflip, /dice, /roulette, /blackjack, /poker, /slots, /baccarat, /pari', inline: false },
       { name: '🎭 RP & Duel', value: '/gunfight', inline: false },
+      { name: '🏛️ Guildes', value: '/guild', inline: false },
       { name: '🛠️ Config & News', value: '/config, /news', inline: false },
       { name: '📚 Aide & Guide', value: '/aide, /guide', inline: false }
     )

@@ -102,6 +102,55 @@ function init() {
     expires_at INTEGER
   )`).run();
 
+  // Create guilds table
+  db.prepare(`CREATE TABLE IF NOT EXISTS guilds (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE NOT NULL,
+    description TEXT NOT NULL,
+    leader_id TEXT NOT NULL,
+    treasury INTEGER NOT NULL DEFAULT 0,
+    level INTEGER NOT NULL DEFAULT 1,
+    experience INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL DEFAULT 'open',
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (leader_id) REFERENCES users(id)
+  )`).run();
+
+  // Create guild_members table
+  db.prepare(`CREATE TABLE IF NOT EXISTS guild_members (
+    guild_id INTEGER NOT NULL,
+    user_id TEXT NOT NULL,
+    rank TEXT NOT NULL DEFAULT 'member',
+    joined_at INTEGER NOT NULL,
+    contribution INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY (guild_id, user_id),
+    FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  )`).run();
+
+  // Create guild_wars table
+  db.prepare(`CREATE TABLE IF NOT EXISTS guild_wars (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    attacker_id INTEGER NOT NULL,
+    defender_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active',
+    started_at INTEGER NOT NULL,
+    ends_at INTEGER,
+    FOREIGN KEY (attacker_id) REFERENCES guilds(id) ON DELETE CASCADE,
+    FOREIGN KEY (defender_id) REFERENCES guilds(id) ON DELETE CASCADE
+  )`).run();
+
+  // Create guild_alliances table
+  db.prepare(`CREATE TABLE IF NOT EXISTS guild_alliances (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    guild1_id INTEGER NOT NULL,
+    guild2_id INTEGER NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    created_at INTEGER NOT NULL,
+    FOREIGN KEY (guild1_id) REFERENCES guilds(id) ON DELETE CASCADE,
+    FOREIGN KEY (guild2_id) REFERENCES guilds(id) ON DELETE CASCADE
+  )`).run();
+
   // Insert default properties if not present
   const existing = db.prepare('SELECT COUNT(*) AS count FROM properties').get().count;
   if (existing === 0) {
@@ -380,6 +429,96 @@ function getTotalCirculation() {
   return total;
 }
 
+// Guild functions
+function createGuild(name, description, leaderId) {
+  const now = Date.now();
+  const result = db.prepare('INSERT INTO guilds (name, description, leader_id, created_at) VALUES (?, ?, ?, ?)').run(name, description, leaderId, now);
+  const guildId = result.lastInsertRowid;
+  
+  // Add leader as member
+  db.prepare('INSERT INTO guild_members (guild_id, user_id, rank, joined_at) VALUES (?, ?, ?, ?)').run(guildId, leaderId, 'leader', now);
+  
+  return guildId;
+}
+
+function getGuildByName(name) {
+  return db.prepare('SELECT * FROM guilds WHERE name = ?').get(name);
+}
+
+function getUserGuild(userId) {
+  return db.prepare(`
+    SELECT g.*, gm.rank, gm.joined_at, gm.contribution 
+    FROM guilds g 
+    JOIN guild_members gm ON g.id = gm.guild_id 
+    WHERE gm.user_id = ?
+  `).get(userId);
+}
+
+function getAllGuilds() {
+  return db.prepare('SELECT * FROM guilds ORDER BY level DESC, experience DESC').all();
+}
+
+function joinGuild(userId, guildId) {
+  const now = Date.now();
+  db.prepare('INSERT INTO guild_members (guild_id, user_id, rank, joined_at) VALUES (?, ?, ?, ?)').run(guildId, userId, 'member', now);
+}
+
+function leaveGuild(userId) {
+  db.prepare('DELETE FROM guild_members WHERE user_id = ?').run(userId);
+}
+
+function getGuildMembers(guildId) {
+  return db.prepare('SELECT * FROM guild_members WHERE guild_id = ? ORDER BY rank DESC, joined_at ASC').all(guildId);
+}
+
+function getGuildMember(guildId, userId) {
+  return db.prepare('SELECT * FROM guild_members WHERE guild_id = ? AND user_id = ?').get(guildId, userId);
+}
+
+function adjustGuildTreasury(guildId, delta) {
+  const guild = db.prepare('SELECT treasury FROM guilds WHERE id = ?').get(guildId);
+  const newTreasury = Math.max(0, guild.treasury + delta);
+  db.prepare('UPDATE guilds SET treasury = ? WHERE id = ?').run(newTreasury, guildId);
+  return newTreasury;
+}
+
+function addGuildExperience(guildId, exp) {
+  const guild = db.prepare('SELECT level, experience FROM guilds WHERE id = ?').get(guildId);
+  let newExp = guild.experience + exp;
+  let newLevel = guild.level;
+  
+  // Level up logic
+  const expNeeded = newLevel * 1000;
+  if (newExp >= expNeeded) {
+    newLevel++;
+    newExp -= expNeeded;
+  }
+  
+  db.prepare('UPDATE guilds SET level = ?, experience = ? WHERE id = ?').run(newLevel, newExp, guildId);
+}
+
+function getGuildWars(guildId) {
+  return db.prepare(`
+    SELECT gw.*, 
+           CASE WHEN gw.attacker_id = ? THEN g2.name ELSE g1.name END as target_name
+    FROM guild_wars gw
+    JOIN guilds g1 ON gw.attacker_id = g1.id
+    JOIN guilds g2 ON gw.defender_id = g2.id
+    WHERE (gw.attacker_id = ? OR gw.defender_id = ?) AND gw.status = 'active'
+  `).all(guildId, guildId, guildId);
+}
+
+function getGuildAlliances(guildId) {
+  return db.prepare(`
+    SELECT ga.*, 
+           CASE WHEN ga.guild1_id = ? THEN g2.name ELSE g1.name END as ally_name
+    FROM guild_alliances ga
+    JOIN guilds g1 ON ga.guild1_id = g1.id
+    JOIN guilds g2 ON ga.guild2_id = g2.id
+    WHERE (ga.guild1_id = ? OR ga.guild2_id = ?) AND ga.status = 'active'
+  `).all(guildId, guildId, guildId);
+}
+
 export default {
   init,
   getUser,
@@ -416,5 +555,18 @@ export default {
   getSetting,
   addNews,
   getActiveNews,
-  getTotalCirculation
+  getTotalCirculation,
+  // Guild functions
+  createGuild,
+  getGuildByName,
+  getUserGuild,
+  getAllGuilds,
+  joinGuild,
+  leaveGuild,
+  getGuildMembers,
+  getGuildMember,
+  adjustGuildTreasury,
+  addGuildExperience,
+  getGuildWars,
+  getGuildAlliances
 };
