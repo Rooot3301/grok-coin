@@ -26,15 +26,19 @@ export async function execute(interaction, db, config) {
   if (sub === 'solde') {
     db.updateLoanInterest(uid);
     const loan = db.getLoan(uid);
-    const parts = [];
-    parts.push(`💰 Cash : **${formatCents(user.balance)} GKC**`);
-    parts.push(`🏦 Banque : **${formatCents(user.bank_balance)} GKC**`);
-    if (loan) {
-      parts.push(`🧾 Prêt : principal ${formatCents(loan.principal)} GKC + intérêts ${formatCents(loan.interest)} GKC`);
-    } else {
-      parts.push('🧾 Prêt : aucun');
-    }
-    return interaction.reply(parts.join('\n'));
+    
+    const embed = new EmbedBuilder()
+      .setTitle('🏦 Situation Bancaire')
+      .setColor(COLORS.BANK)
+      .addFields(
+        { name: '💰 Liquidités', value: formatCents(user.balance) + ' Ǥ', inline: true },
+        { name: '🏦 Épargne', value: formatCents(user.bank_balance) + ' Ǥ', inline: true },
+        { name: '🧾 Prêt', value: loan ? `${formatCents(loan.principal + loan.interest)} Ǥ` : 'Aucun', inline: true }
+      )
+      .setFooter({ text: '🏦 GrokBank • Votre partenaire financier' })
+      .setTimestamp();
+    
+    return interaction.reply({ embeds: [embed] });
   }
   if (sub === 'depot') {
     const amount = interaction.options.getNumber('montant');

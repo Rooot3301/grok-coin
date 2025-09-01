@@ -15,7 +15,7 @@ export async function execute(interaction, db, config) {
   // Construire l'embed de présentation du casino
   const embed = new EmbedBuilder()
     .setTitle('🎰 Bienvenue au GrokCasino')
-    .setColor(0xD4AF37)
+    .setColor(COLORS.CASINO)
     .setDescription(
       'Choisissez votre jeu parmi les options ci‑dessous. Utilisez les commandes correspondantes pour commencer à jouer.\n\n' +
       '**/bj** → Blackjack interactif avec boutons\n' +
@@ -26,9 +26,12 @@ export async function execute(interaction, db, config) {
       'N’oubliez pas : les jeux sont **provably fair** et les pertes sont plafonnées par jour.'
     )
     .addFields(
-      { name: 'Limites de mises', value: `Plafond quotidien des pertes : **${config.casino.daily_loss_cap} GKC**`, inline: false },
-      { name: 'Astuce', value: 'Cliquez sur les commandes ci‑dessus dans Discord pour commencer !', inline: false }
+      { name: '💰 Limites de mises', value: `Plafond quotidien des pertes : **${config.casino.daily_loss_cap_multiplier * 100}% de votre solde**`, inline: false },
+      { name: '💡 Astuce', value: 'Jouez régulièrement pour débloquer les rangs VIP et leurs bonus !', inline: false }
     );
+  
+  embed.setFooter({ text: '🎰 GrokCasino • Jeu responsable' })
+    .setTimestamp();
   // Joindre l'image du casino pour améliorer l'esthétique
   try {
     const imageBuffer = fs.readFileSync(new URL('../assets/casino.png', import.meta.url));

@@ -7,16 +7,16 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction, db, config) {
   const embed = new EmbedBuilder()
-    .setTitle(`${SYMBOLS.DIAMOND} Menu Principal GrokCity`)
+    .setTitle(`💎 Menu Principal GrokCity`)
     .setColor(COLORS.INFO)
     .setDescription(`**Choisissez une catégorie dans le menu déroulant ci-dessous**\n\nNaviguez facilement dans toutes les fonctionnalités de GrokCity !`)
     .addFields(
-      { name: `${SYMBOLS.ROCKET} Nouveau ?`, value: `Commencez par \`/start\` puis \`/dashboard\``, inline: true },
-      { name: `${SYMBOLS.INFO} Aide`, value: `Utilisez \`/aide\` pour les commandes`, inline: true },
-      { name: `${SYMBOLS.FIRE} Événements`, value: `Consultez \`/event\` pour l'actualité`, inline: true }
+      { name: `🚀 Nouveau ?`, value: `Commencez par \`/start\` puis \`/dashboard\``, inline: true },
+      { name: `ℹ️ Aide`, value: `Utilisez \`/aide\` pour les commandes`, inline: true },
+      { name: `🔥 Événements`, value: `Consultez \`/event\` pour l'actualité`, inline: true }
     )
     .setImage('https://images.pexels.com/photos/3184338/pexels-photo-3184338.jpeg?auto=compress&cs=tinysrgb&w=1200&h=300')
-    .setFooter({ text: '💎 GrokCity • Menu Interactif', iconURL: 'https://images.pexels.com/photos/844124/pexels-photo-844124.jpeg?auto=compress&cs=tinysrgb&w=32&h=32' })
+    .setFooter({ text: '💎 GrokCity • Menu Interactif' })
     .setTimestamp();
 
   const selectMenu = new StringSelectMenuBuilder()
@@ -27,25 +27,25 @@ export async function execute(interaction, db, config) {
         label: 'Économie & Finances',
         description: 'Profil, banque, travail, paiements',
         value: 'economy',
-        emoji: SYMBOLS.WALLET
+        emoji: '💰'
       },
       {
         label: 'Trading BitGrok',
         description: 'Crypto, staking, graphiques, DeFi',
         value: 'crypto',
-        emoji: SYMBOLS.BITGROK
+        emoji: '₿'
       },
       {
         label: 'Casino VIP',
         description: 'Blackjack, poker, slots, roulette',
         value: 'casino',
-        emoji: SYMBOLS.CASINO
+        emoji: '🎰'
       },
       {
         label: 'Immobilier',
         description: 'Acheter, gérer, revenus passifs',
         value: 'immo',
-        emoji: SYMBOLS.HOUSE
+        emoji: '🏠'
       },
       {
         label: 'Guildes & Alliances',
@@ -57,7 +57,7 @@ export async function execute(interaction, db, config) {
         label: 'Événements & News',
         description: 'Actualités, événements économiques',
         value: 'events',
-        emoji: SYMBOLS.FIRE
+        emoji: '🔥'
       },
       {
         label: 'Aide & Guides',
@@ -87,7 +87,7 @@ export async function execute(interaction, db, config) {
     switch (category) {
       case 'economy':
         responseEmbed = new EmbedBuilder()
-          .setTitle(`${SYMBOLS.WALLET} Économie & Finances`)
+          .setTitle(`💰 Économie & Finances`)
           .setColor(COLORS.SUCCESS)
           .setDescription('**Commandes disponibles :**')
           .addFields(
@@ -102,7 +102,7 @@ export async function execute(interaction, db, config) {
         
       case 'crypto':
         responseEmbed = new EmbedBuilder()
-          .setTitle(`${SYMBOLS.BITGROK} Trading BitGrok`)
+          .setTitle(`₿ Trading BitGrok`)
           .setColor(COLORS.CRYPTO_GREEN)
           .setDescription('**Marché des cryptomonnaies :**')
           .addFields(
@@ -117,7 +117,7 @@ export async function execute(interaction, db, config) {
         
       case 'casino':
         responseEmbed = new EmbedBuilder()
-          .setTitle(`${SYMBOLS.CASINO} Casino VIP`)
+          .setTitle(`🎰 Casino VIP`)
           .setColor(COLORS.CASINO)
           .setDescription('**Jeux disponibles :**')
           .addFields(
@@ -132,7 +132,7 @@ export async function execute(interaction, db, config) {
         
       case 'immo':
         responseEmbed = new EmbedBuilder()
-          .setTitle(`${SYMBOLS.HOUSE} Immobilier`)
+          .setTitle(`🏠 Immobilier`)
           .setColor(COLORS.IMMO)
           .setDescription('**Investissement immobilier :**')
           .addFields(
@@ -159,7 +159,7 @@ export async function execute(interaction, db, config) {
         
       case 'events':
         responseEmbed = new EmbedBuilder()
-          .setTitle(`${SYMBOLS.FIRE} Événements & News`)
+          .setTitle(`🔥 Événements & News`)
           .setColor(COLORS.WARNING)
           .setDescription('**Actualités économiques :**')
           .addFields(

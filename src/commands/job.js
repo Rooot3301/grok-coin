@@ -28,10 +28,22 @@ export async function execute(interaction, db, config) {
   if (sub === 'choisir') {
     const jobName = interaction.options.getString('métier');
     if (!jobs[jobName]) {
-      return interaction.reply({ content: 'Métier invalide. Veuillez choisir parmi : ' + Object.keys(jobs).join(', '), ephemeral: true });
+      const jobList = Object.keys(jobs).map(job => `${jobs[job].emoji} **${job}**`).join('\n');
+      const embed = new EmbedBuilder()
+        .setTitle('💼 Métiers Disponibles')
+        .setColor(COLORS.INFO)
+        .setDescription('**Choisissez parmi ces carrières prestigieuses :**\n\n' + jobList)
+        .setFooter({ text: 'Utilisez /job choisir <métier> pour sélectionner' });
+      return interaction.reply({ embeds: [embed], ephemeral: true });
     }
     db.setJob(uid, jobName);
-    return interaction.reply(`✅ Métier défini sur **${jobName}**. Utilisez /job shift pour commencer à travailler !`);
+    
+    const embed = new EmbedBuilder()
+      .setTitle('💼 Carrière Choisie')
+      .setColor(COLORS.SUCCESS)
+      .setDescription(`${jobs[jobName].emoji} Vous êtes maintenant **${jobName}** !\n\n*${jobs[jobName].description}*\n\nSalaire : **${jobs[jobName].salary} Ǥ** par shift`)
+      .setFooter({ text: 'Utilisez /job shift pour commencer à travailler !' });
+    return interaction.reply({ embeds: [embed] });
   } else if (sub === 'shift') {
     if (!user.job) {
       return interaction.reply({ content: 'Vous n\'avez pas encore choisi de métier. Utilisez /job choisir pour en choisir un.', ephemeral: true });
