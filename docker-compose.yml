@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  grokcoin-bot:
+    build: .
+    container_name: grokcoin-bot
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+    env_file:
+      - .env
+    volumes:
+      - ./grokcoin.db:/app/grokcoin.db
+      - ./logs:/app/logs
+    networks:
+      - grokcoin-network
+
+networks:
+  grokcoin-network:
+    driver: bridge
