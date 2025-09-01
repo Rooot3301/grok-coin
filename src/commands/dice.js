@@ -17,16 +17,7 @@ export async function execute(interaction, db, config) {
   const stake = toCents(amount);
   if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', ephermal: true });
   if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', ephermal: true });
-  // Daily loss cap
-  const event = getEvent();
-  let lossCap = config.casino.daily_loss_cap * 100;
-  if (event.effects && event.effects.casinoLossCapMultiplier) {
-    lossCap = Math.floor(lossCap * event.effects.casinoLossCapMultiplier);
-  }
-  const currentLoss = db.getDailyLoss(uid);
-  if (currentLoss + stake > lossCap) {
-    return interaction.reply({ content: `Plafond de pertes quotidien atteint (${formatCents(lossCap)} GKC). Revenez demain.`, ephermal: true });
-  }
+  
   // Deduct stake
   db.adjustBalance(uid, -stake);
   // Roll dice
@@ -41,7 +32,6 @@ export async function execute(interaction, db, config) {
     message = `🎲 Le résultat est **${roll}** (seuil ${threshold}). Vous gagnez **${formatCents(payout - stake)} GKC** !`;
   } else {
     // Loss
-    db.addDailyLoss(uid, stake);
     message = `🎲 Le résultat est **${roll}** (seuil ${threshold}). Vous perdez **${formatCents(stake)} GKC**.`;
   }
   const embed = new EmbedBuilder()

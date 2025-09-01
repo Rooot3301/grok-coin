@@ -224,6 +224,11 @@ function getUser(userId) {
     // Create new user with default values
     const startingBalance = config.economy.starting_balance || 0;
     db.prepare('INSERT INTO users (id, balance, bank_balance) VALUES (?, ?, ?)').run(userId, startingBalance * 100, 0);
+    
+    // Assign default housing (cardboard box)
+    const defaultHousing = config.immo.default_housing;
+    db.prepare('INSERT INTO user_properties (user_id, property_id, purchased_at, last_rent) VALUES (?, ?, ?, ?)').run(userId, defaultHousing.id, Date.now(), Date.now());
+    
     user = db.prepare('SELECT * FROM users WHERE id = ?').get(userId);
   }
   return user;
@@ -459,25 +464,50 @@ function addPropertyToUser(userId, propId) {
     .run(userId, propId, Date.now(), Date.now());
 }
 
-// Daily loss functions used to enforce casino loss cap
-function getDailyLoss(userId) {
-  const user = getUser(userId);
-  const today = new Date().toDateString();
-  const lossDay = user.loss_day ? new Date(user.loss_day).toDateString() : null;
-  if (lossDay !== today) {
-    // reset counter
-    updateUser(userId, { daily_loss: 0, loss_day: Date.now() });
-    return 0;
-  }
-  return user.daily_loss || 0;
+// Housing functions
+function getUserHousing(userId) {
+  return db.prepare(`
+    SELECT p.*, up.last_rent 
+    FROM user_properties up 
+    JOIN properties p ON up.property_id = p.id 
+    WHERE up.user_id = ? AND p.rent > 0
+    ORDER BY p.rent ASC
+    LIMIT 1
+  `).get(userId);
 }
 
-function addDailyLoss(userId, amountCents) {
-  const currentLoss = getDailyLoss(userId);
-  const newLoss = currentLoss + amountCents;
-  updateUser(userId, { daily_loss: newLoss, loss_day: Date.now() });
-  return newLoss;
+function payRent(userId) {
+  const housing = getUserHousing(userId);
+  if (!housing) return { paid: 0, property: null };
+  
+  const user = getUser(userId);
+  const rentCents = housing.rent * 100;
+  
+  if (user.balance >= rentCents) {
+    adjustBalance(userId, -rentCents);
+    db.prepare('UPDATE user_properties SET last_rent = ? WHERE user_id = ? AND property_id = ?')
+      .run(Date.now(), userId, housing.id);
+    return { paid: rentCents, property: housing };
+  }
+  
+  return { paid: 0, property: housing };
 }
+
+function checkRentDue(userId) {
+  const housing = getUserHousing(userId);
+  if (!housing) return { due: false, daysLate: 0 };
+  
+  const now = Date.now();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const daysSinceLastRent = Math.floor((now - housing.last_rent) / dayMs);
+  
+  return { 
+    due: daysSinceLastRent >= 7, // Rent due weekly
+    daysLate: Math.max(0, daysSinceLastRent - 7),
+    housing: housing
+  };
+}
+// Daily loss functions used to enforce casino loss cap
 
 // Settings functions: store and retrieve persistent configuration values
 function setSetting(key, value) {
@@ -696,9 +726,10 @@ export default {
   getUserProperties,
   addPropertyToUser
   ,
-  getDailyLoss,
-  addDailyLoss
-  ,
+  // Housing functions
+  getUserHousing,
+  payRent,
+  checkRentDue,
   // Stablecoin and staking functions
   adjustStableBalance,
   updateStakingInterest,

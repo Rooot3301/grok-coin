@@ -19,16 +19,7 @@ export async function execute(interaction, db, config) {
   const stake = toCents(amount);
   if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', ephemeral: true });
   if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', ephemeral: true });
-  // Check daily loss cap
-  const event = getEvent();
-  let lossCap = config.casino.daily_loss_cap * 100;
-  if (event.effects && event.effects.casinoLossCapMultiplier) {
-    lossCap = Math.floor(lossCap * event.effects.casinoLossCapMultiplier);
-  }
-  const currentLoss = db.getDailyLoss(uid);
-  if (currentLoss + stake > lossCap) {
-    return interaction.reply({ content: `Vous avez atteint votre plafond de pertes quotidien (${formatCents(lossCap)} GKC). Revenez demain !`, ephemeral: true });
-  }
+  
   // Deduct stake
   db.adjustBalance(uid, -stake);
   // Generate random result
@@ -42,7 +33,6 @@ export async function execute(interaction, db, config) {
     message = `🎉 La pièce retombe sur **${outcome}** ! Vous gagnez **${formatCents(payout - stake)} GKC** (payout ${formatCents(payout)}).`;
   } else {
     // Loss: stake is lost
-    db.addDailyLoss(uid, stake);
     message = `😢 La pièce retombe sur **${outcome}**. Vous perdez **${formatCents(stake)} GKC**.`;
   }
   const embed = new EmbedBuilder()

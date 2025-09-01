@@ -33,9 +33,7 @@
       "yield_farming": { "apy": 0.15, "risk": 0.08 },
       "liquidity_mining": { "apy": 0.20, "risk": 0.12 }
     }
-  },
   "casino": {
-    "daily_loss_cap_multiplier": 0.1,
     "vip_tiers": {
       "bronze": { "threshold": 10000, "bonus": 0.02, "loss_cap_bonus": 0.1 },
       "silver": { "threshold": 50000, "bonus": 0.05, "loss_cap_bonus": 0.25 },
@@ -51,7 +49,18 @@
     }
   },
   "immo": {
+    "mandatory_housing": true,
+    "homeless_penalty_daily": 50,
+    "default_housing": {
+      "id": "cardboard_box",
+      "name": "Boîte en Carton",
+      "price": 0,
+      "rent": 25,
+      "description": "Logement de fortune sous un pont"
+    },
     "properties": [
+      { "id": "cardboard_box", "name": "Boîte en Carton", "price": 0, "rent": 25, "maintenance": 0, "emoji": "📦", "description": "Logement de fortune sous un pont" },
+      { "id": "hostel_bed", "name": "Lit d'Auberge", "price": 500, "rent": 15, "maintenance": 0, "emoji": "🛏️", "description": "Lit partagé dans une auberge de jeunesse" },
       { "id": "studio", "name": "Studio Centre-ville", "price": 45000, "rent": 180, "maintenance": 0.02, "emoji": "🏠" },
       { "id": "appartement", "name": "Appartement 3P", "price": 85000, "rent": 340, "maintenance": 0.025, "emoji": "🏢" },
       { "id": "maison", "name": "Maison Individuelle", "price": 150000, "rent": 600, "maintenance": 0.03, "emoji": "🏡" },
