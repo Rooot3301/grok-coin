@@ -33,6 +33,7 @@
       "yield_farming": { "apy": 0.15, "risk": 0.08 },
       "liquidity_mining": { "apy": 0.20, "risk": 0.12 }
     }
+  },
   "casino": {
     "vip_tiers": {
       "bronze": { "threshold": 10000, "bonus": 0.02, "loss_cap_bonus": 0.1 },
