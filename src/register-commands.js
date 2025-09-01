@@ -8,8 +8,13 @@ dotenv.config();
 const token = process.env.DISCORD_TOKEN;
 const clientId = process.env.CLIENT_ID;
 
-if (!token || !clientId) {
-  console.error('DISCORD_TOKEN ou CLIENT_ID manquant. Veuillez définir ces valeurs dans le fichier .env.');
+if (!token || !clientId || token === 'your_discord_bot_token_here' || clientId === 'your_discord_application_id_here') {
+  console.error('❌ DISCORD_TOKEN ou CLIENT_ID manquant ou invalide.');
+  console.error('📝 Veuillez configurer vos vraies clés Discord dans le fichier .env :');
+  console.error('   1. Allez sur https://discord.com/developers/applications');
+  console.error('   2. Créez une nouvelle application ou sélectionnez-en une existante');
+  console.error('   3. Dans "Bot", copiez le TOKEN et mettez-le dans DISCORD_TOKEN');
+  console.error('   4. Dans "General Information", copiez l\'APPLICATION ID et mettez-le dans CLIENT_ID');
   process.exit(1);
 }
 

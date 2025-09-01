@@ -9,7 +9,9 @@
     "register:commands": "node src/register-commands.js",
     "dev": "node --watch src/index.js",
     "test": "node src/test.js",
-    "backup": "cp grokcoin.db backup_$(date +%Y%m%d_%H%M%S).db"
+    "backup": "cp grokcoin.db backup_$(date +%Y%m%d_%H%M%S).db",
+    "rebuild": "npm rebuild better-sqlite3",
+    "fresh-install": "rm -rf node_modules package-lock.json && npm install"
   },
   "dependencies": {
     "discord.js": "^14.9.0",
