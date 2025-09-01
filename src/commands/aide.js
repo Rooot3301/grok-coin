@@ -22,7 +22,9 @@ export async function execute(interaction) {
       { name: '📊 Informations', value: '`/event` - Événement économique actuel\n`/news` - Actualités GrokCity\n`/eco` - Statistiques économiques\n`/menu` - Navigation interactive', inline: false }
     )
     .setImage('https://images.pexels.com/photos/3184338/pexels-photo-3184338.jpeg?auto=compress&cs=tinysrgb&w=1200&h=300')
-    .setFooter({ text: 'CopaingCity – La ville où l'argent parle' })
+    .setFooter({ text: 'CopaingCity – La ville où l\'argent parle' })
+    }
+    )
     .setTimestamp();
   await interaction.reply({ embeds: [embed], flags: 64 });
 }
