@@ -105,14 +105,11 @@ export async function execute(interaction, db, config) {
   // Collecteur pour les boutons
   const collector = response.createMessageComponentCollector({
     componentType: ComponentType.Button,
-    time: 300000 // 5 minutes
+    time: 300000,
+    filter: i => i.user.id === uid
   });
 
   collector.on('collect', async i => {
-    if (i.user.id !== uid) {
-      return i.reply({ content: 'Ce dashboard n\'est pas pour vous !', ephemeral: true });
-    }
-
     try {
       await i.deferReply({ ephemeral: true });
       

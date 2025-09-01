@@ -66,17 +66,15 @@ export async function execute(interaction, db, config) {
   
   const collector = response.createMessageComponentCollector({
     componentType: ComponentType.StringSelect,
-    time: 300000
+    time: 300000,
+    filter: i => i.user.id === interaction.user.id
   });
 
   collector.on('collect', async i => {
-    if (i.user.id !== interaction.user.id) {
-      return i.reply({ content: 'Ce menu n\'est pas pour vous !', ephemeral: true });
-    }
-
     try {
       const category = i.values[0];
       let responseEmbed;
+      
       switch (category) {
         case 'economy':
           responseEmbed = new EmbedBuilder()

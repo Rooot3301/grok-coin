@@ -1,4 +1,5 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
+import { formatCents } from '../utils/money.js';
 
 export const data = new SlashCommandBuilder()
   .setName('casino')
@@ -31,12 +32,12 @@ export async function execute(interaction, db, config) {
       },
       { 
         name: '💰 Votre Solde', 
-        value: `${(user.balance / 100).toFixed(2)} Ǥ`, 
+        value: `${formatCents(user.balance)} Ǥ`, 
         inline: true 
       },
       { 
         name: '🎯 Total Misé', 
-        value: `${((user.total_wagered || 0) / 100).toFixed(2)} Ǥ`, 
+        value: `${formatCents(user.total_wagered || 0)} Ǥ`, 
         inline: true 
       }
     )
@@ -76,7 +77,7 @@ export async function execute(interaction, db, config) {
       const game = i.customId.split('_')[1];
       await i.reply({ 
         content: `🎮 Utilisez la commande \`/${game}\` pour jouer !`, 
-        flags: 64 
+        ephemeral: true 
       });
     } catch (error) {
       console.error('Erreur interaction casino:', error);
