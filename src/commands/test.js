@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { formatGrokCoin, COLORS } from '../utils/symbols.js';
+import { formatCents } from '../utils/money.js';
 
 export const data = new SlashCommandBuilder()
   .setName('test')
@@ -9,7 +9,7 @@ export async function execute(interaction, db, config) {
   const uid = interaction.user.id;
   
   try {
-    // Test de la base de données
+    // Test de base
     const user = db.getUser(uid);
     const totalUsers = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
     const totalCirculation = db.getTotalCirculation();
@@ -24,17 +24,17 @@ export async function execute(interaction, db, config) {
     
     const embed = new EmbedBuilder()
       .setTitle('🧪 Test du Bot - Résultats')
-      .setColor(COLORS.SUCCESS)
+      .setColor(0x4caf50)
       .setDescription('**Tous les systèmes sont opérationnels !**')
       .addFields(
         { 
           name: '✅ Base de Données', 
-          value: `Utilisateurs: ${totalUsers}\nCirculation: ${formatGrokCoin(totalCirculation)}\nVotre solde: ${formatGrokCoin(user.balance)}`, 
+          value: `Utilisateurs: ${totalUsers}\nCirculation: ${formatCents(totalCirculation)} Ǥ\nVotre solde: ${formatCents(user.balance)} Ǥ`, 
           inline: true 
         },
         { 
           name: '✅ Immobilier', 
-          value: `Propriétés disponibles: ${properties.length}\nVos biens: ${userProperties.length}\nLogement: ${housing ? housing.name : 'Aucun'}`, 
+          value: `Propriétés: ${properties.length}\nVos biens: ${userProperties.length}\nLogement: ${housing ? housing.name : 'Aucun'}`, 
           inline: true 
         },
         { 
@@ -44,35 +44,35 @@ export async function execute(interaction, db, config) {
         },
         {
           name: '🎯 Métier',
-          value: user.job ? `${config.economy.jobs[user.job].emoji} ${user.job}` : 'Aucun métier',
+          value: user.job ? `${config.economy.jobs[user.job]?.emoji || '💼'} ${user.job}` : 'Aucun métier',
           inline: true
         },
         {
           name: '🏦 Banque',
-          value: `Épargne: ${formatGrokCoin(user.bank_balance)}\nDernier intérêt: ${user.last_interest ? 'Réclamé' : 'Jamais'}`,
+          value: `Épargne: ${formatCents(user.bank_balance)} Ǥ\nIntérêts: ${user.last_interest ? 'Réclamés' : 'Jamais'}`,
           inline: true
         },
         {
           name: '🎰 Casino',
-          value: `Pertes quotidiennes: ${formatGrokCoin(user.daily_loss || 0)}\nVIP: ${user.vip_tier || 'Standard'}`,
+          value: `VIP: ${user.vip_tier || 'Standard'}\nTotal misé: ${formatCents(user.total_wagered || 0)} Ǥ`,
           inline: true
         }
       )
       .setFooter({ text: '🧪 Test effectué avec succès' })
       .setTimestamp();
     
-    await interaction.reply({ embeds: [embed] });
+    return interaction.reply({ embeds: [embed] });
     
   } catch (error) {
     console.error('Erreur lors du test:', error);
     
     const errorEmbed = new EmbedBuilder()
       .setTitle('❌ Test du Bot - Erreur')
-      .setColor(COLORS.ERROR)
+      .setColor(0xf44336)
       .setDescription(`**Erreur détectée :**\n\`\`\`${error.message}\`\`\``)
       .setFooter({ text: '🧪 Test échoué' })
       .setTimestamp();
     
-    await interaction.reply({ embeds: [errorEmbed] });
+    return interaction.reply({ embeds: [errorEmbed] });
   }
 }

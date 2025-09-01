@@ -1,6 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType } from 'discord.js';
 import { toCents, formatCents } from '../utils/money.js';
-import { getEvent } from '../events.js';
 
 const symbols = [
   { emoji: '🍒', name: 'Cerise', weight: 30, value: 2 },
@@ -24,7 +23,7 @@ function getRandomSymbol() {
     }
   }
   
-  return symbols[0]; // Fallback
+  return symbols[0];
 }
 
 function spinReels() {
@@ -37,11 +36,9 @@ function spinReels() {
 
 function checkWinningLines(reels) {
   const lines = [
-    // Lignes horizontales
     [reels[0][0], reels[1][0], reels[2][0]], // Ligne du haut
     [reels[0][1], reels[1][1], reels[2][1]], // Ligne du milieu
     [reels[0][2], reels[1][2], reels[2][2]], // Ligne du bas
-    // Diagonales
     [reels[0][0], reels[1][1], reels[2][2]], // Diagonale \
     [reels[0][2], reels[1][1], reels[2][0]]  // Diagonale /
   ];
@@ -51,7 +48,6 @@ function checkWinningLines(reels) {
   lines.forEach((line, index) => {
     const [first, second, third] = line;
     
-    // Trois symboles identiques
     if (first.emoji === second.emoji && second.emoji === third.emoji) {
       wins.push({
         line: index,
@@ -59,9 +55,7 @@ function checkWinningLines(reels) {
         count: 3,
         multiplier: first.value
       });
-    }
-    // Deux symboles identiques (paiement réduit)
-    else if (first.emoji === second.emoji || second.emoji === third.emoji) {
+    } else if (first.emoji === second.emoji || second.emoji === third.emoji) {
       const symbol = first.emoji === second.emoji ? first : second;
       wins.push({
         line: index,
@@ -98,40 +92,26 @@ function formatReels(reels) {
 
 export const data = new SlashCommandBuilder()
   .setName('slots')
-  .setDescription('Jouer aux machines à sous')
-  .addNumberOption(opt => opt.setName('mise').setDescription('Montant à miser (GKC)').setRequired(true))
-  .addIntegerOption(opt => opt.setName('tours').setDescription('Nombre de tours automatiques (1-10)').setRequired(false));
+  .setDescription('🎰 Jouer aux machines à sous')
+  .addNumberOption(opt => opt.setName('mise').setDescription('Montant à miser (GKC)').setRequired(true));
 
 export async function execute(interaction, db, config) {
   const uid = interaction.user.id;
   const user = db.getUser(uid);
   const amount = interaction.options.getNumber('mise');
-  const autoSpins = Math.min(Math.max(interaction.options.getInteger('tours') || 1, 1), 10);
   const stake = toCents(amount);
 
-  if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', ephemeral: true });
-  if (user.balance < stake * autoSpins) return interaction.reply({ content: 'Solde insuffisant pour tous les tours.', ephemeral: true });
-
-  // Vérifier le plafond de pertes quotidien
-  const event = getEvent();
-  let lossCap = config.casino.daily_loss_cap * 100;
-  if (event.effects && event.effects.casinoLossCapMultiplier) {
-    lossCap = Math.floor(lossCap * event.effects.casinoLossCapMultiplier);
+  if (stake <= 0) {
+    return interaction.reply({ content: '❌ Mise invalide.', flags: 64 });
   }
   
-  const currentLoss = db.getDailyLoss(uid);
-  // No loss cap - players can bet freely
-
-  if (autoSpins === 1) {
-    return playSingleSpin(interaction, db, config, uid, stake);
-  } else {
-    return playAutoSpins(interaction, db, config, uid, stake, autoSpins);
+  if (user.balance < stake) {
+    return interaction.reply({ content: '❌ Solde insuffisant.', flags: 64 });
   }
-}
 
-async function playSingleSpin(interaction, db, config, uid, stake) {
   // Déduire la mise
   db.adjustBalance(uid, -stake);
+  db.updateVipTier(uid, stake);
   
   const reels = spinReels();
   const wins = checkWinningLines(reels);
@@ -140,7 +120,7 @@ async function playSingleSpin(interaction, db, config, uid, stake) {
   let winDescription = '';
   
   if (wins.length > 0) {
-    const feePct = config.casino.fee_pct || 0.01;
+    const feePct = config.casino?.fee_pct || 0.01;
     
     for (const win of wins) {
       const payout = Math.floor(stake * win.multiplier * (1 - feePct));
@@ -152,7 +132,6 @@ async function playSingleSpin(interaction, db, config, uid, stake) {
     
     db.adjustBalance(uid, totalPayout);
   } else {
-    // No daily loss tracking needed
     winDescription = 'Aucune combinaison gagnante';
   }
 
@@ -166,19 +145,16 @@ async function playSingleSpin(interaction, db, config, uid, stake) {
       { name: '💳 Solde actuel', value: `${formatCents(db.getUser(uid).balance)} GKC`, inline: true }
     );
 
-  // Ajouter un bouton pour rejouer
   const row = new ActionRowBuilder()
     .addComponents(
       new ButtonBuilder()
         .setCustomId('slots_again')
         .setLabel('Rejouer')
-        .setStyle(ButtonStyle.Primary)
-        .setEmoji('🎰'),
+        .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
         .setCustomId('slots_auto')
         .setLabel('Auto x5')
         .setStyle(ButtonStyle.Secondary)
-        .setEmoji('🔄')
     );
 
   const response = await interaction.reply({ embeds: [embed], components: [row] });
@@ -190,76 +166,56 @@ async function playSingleSpin(interaction, db, config, uid, stake) {
 
   collector.on('collect', async i => {
     if (i.user.id !== uid) {
-      return i.reply({ content: 'Cette machine n\'est pas pour vous.', ephemeral: true });
+      return i.reply({ content: '❌ Cette machine n\'est pas pour vous.', flags: 64 });
     }
 
-    const user = db.getUser(uid);
-    if (user.balance < stake) {
-      return i.reply({ content: 'Solde insuffisant.', ephemeral: true });
+    const currentUser = db.getUser(uid);
+    if (currentUser.balance < stake) {
+      return i.reply({ content: '❌ Solde insuffisant.', flags: 64 });
     }
 
     if (i.customId === 'slots_again') {
       await i.deferUpdate();
-      await playSingleSpin(i, db, config, uid, stake);
-    } else if (i.customId === 'slots_auto') {
-      await i.deferUpdate();
-      await playAutoSpins(i, db, config, uid, stake, 5);
+      // Relancer une partie
+      const newReels = spinReels();
+      const newWins = checkWinningLines(newReels);
+      
+      db.adjustBalance(uid, -stake);
+      let newPayout = 0;
+      let newDescription = '';
+      
+      if (newWins.length > 0) {
+        const feePct = config.casino?.fee_pct || 0.01;
+        for (const win of newWins) {
+          const payout = Math.floor(stake * win.multiplier * (1 - feePct));
+          newPayout += payout;
+          const lineNames = ['Haut', 'Milieu', 'Bas', 'Diagonale \\', 'Diagonale /'];
+          newDescription += `${win.symbol.emoji} x${win.count} (${lineNames[win.line]}): +${formatCents(payout)} GKC\n`;
+        }
+        db.adjustBalance(uid, newPayout);
+      } else {
+        newDescription = 'Aucune combinaison gagnante';
+      }
+
+      const newEmbed = new EmbedBuilder()
+        .setTitle('🎰 Machine à Sous')
+        .setColor(newPayout > 0 ? 0x4caf50 : 0xf44336)
+        .setDescription(formatReels(newReels))
+        .addFields(
+          { name: '🎯 Résultats', value: newDescription, inline: false },
+          { name: '💰 Gain/Perte', value: newPayout > 0 ? `+${formatCents(newPayout - stake)} GKC` : `-${formatCents(stake)} GKC`, inline: true },
+          { name: '💳 Solde actuel', value: `${formatCents(db.getUser(uid).balance)} GKC`, inline: true }
+        );
+
+      await i.editReply({ embeds: [newEmbed], components: [row] });
     }
   });
 
   collector.on('end', () => {
-    interaction.editReply({ components: [] }).catch(() => {});
+    const disabledRow = new ActionRowBuilder()
+      .addComponents(
+        ...row.components.map(button => ButtonBuilder.from(button).setDisabled(true))
+      );
+    interaction.editReply({ components: [disabledRow] }).catch(() => {});
   });
-}
-
-async function playAutoSpins(interaction, db, config, uid, stake, spins) {
-  let totalWin = 0;
-  let totalLoss = 0;
-  const results = [];
-  
-  for (let i = 0; i < spins; i++) {
-    const user = db.getUser(uid);
-    if (user.balance < stake) {
-      results.push(`Tour ${i + 1}: Solde insuffisant`);
-      break;
-    }
-    
-    db.adjustBalance(uid, -stake);
-    const reels = spinReels();
-    const wins = checkWinningLines(reels);
-    
-    let spinPayout = 0;
-    if (wins.length > 0) {
-      const feePct = config.casino.fee_pct || 0.01;
-      for (const win of wins) {
-        spinPayout += Math.floor(stake * win.multiplier * (1 - feePct));
-      }
-      db.adjustBalance(uid, spinPayout);
-      totalWin += spinPayout;
-      
-      const bestWin = wins.reduce((best, current) => current.multiplier > best.multiplier ? current : best);
-      results.push(`Tour ${i + 1}: ${bestWin.symbol.emoji} x${bestWin.count} (+${formatCents(spinPayout - stake)} GKC)`);
-    } else {
-      // No daily loss tracking needed
-      totalLoss += stake;
-      results.push(`Tour ${i + 1}: Aucun gain (-${formatCents(stake)} GKC)`);
-    }
-  }
-  
-  const netResult = totalWin - (spins * stake);
-  
-  const embed = new EmbedBuilder()
-    .setTitle(`🎰 Machine à Sous - Auto x${spins}`)
-    .setColor(netResult > 0 ? 0x4caf50 : 0xf44336)
-    .setDescription(results.join('\n'))
-    .addFields(
-      { name: '💰 Résultat net', value: netResult > 0 ? `+${formatCents(netResult)} GKC` : `${formatCents(netResult)} GKC`, inline: true },
-      { name: '💳 Solde actuel', value: `${formatCents(db.getUser(uid).balance)} GKC`, inline: true }
-    );
-
-  if (interaction.replied || interaction.deferred) {
-    await interaction.editReply({ embeds: [embed], components: [] });
-  } else {
-    await interaction.reply({ embeds: [embed] });
-  }
 }
