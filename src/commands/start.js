@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
-import { formatCents } from '../utils/money.js';
+import { formatGrokCoin, SYMBOLS, COLORS } from '../utils/symbols.js';
 
 /**
  * Commande de démarrage : crée un compte pour l'utilisateur s'il n'existe pas et affiche un message de bienvenue.
@@ -14,13 +14,16 @@ export async function execute(interaction, db, config) {
   const user = db.getUser(uid);
   const starting = config.economy.starting_balance || 0;
   const embed = new EmbedBuilder()
-    .setTitle('Bienvenue sur GrokCoin !')
-    .setColor(0x1e88e5)
-    .setDescription(`👋 Bienvenue **${interaction.user.username}** !\n\nVous avez été crédité(e) de **${starting} GKC** pour commencer votre aventure.\nChoisissez un métier avec **/job choisir**, travaillez avec **/job shift** et découvrez le casino, la crypto et l'immobilier !`)
+    .setTitle(`${SYMBOLS.DIAMOND} Bienvenue dans GrokCity !`)
+    .setColor(COLORS.SUCCESS)
+    .setDescription(`${SYMBOLS.ROCKET} Bienvenue **${interaction.user.username}** dans l'économie virtuelle la plus avancée !\n\n${SYMBOLS.GROKCOIN} Vous commencez avec **${formatGrokCoin(user.balance)}** pour débuter votre empire financier.\n\n${SYMBOLS.INFO} Explorez les métiers prestigieux, investissez dans l'immobilier, tradez le BitGrok et tentez votre chance au casino !`)
     .addFields(
-      { name: 'Solde initial', value: `${formatCents(user.balance)} GKC`, inline: true },
-      { name: 'Commandes utiles', value: '`/profil` · `/job` · `/banque` · `/casino` · `/immo` · `/dex` · `/stake` · `/node` · `/gunfight`', inline: false }
+      { name: `${SYMBOLS.WALLET} Solde Initial`, value: formatGrokCoin(user.balance), inline: true },
+      { name: `${SYMBOLS.BITGROK} BitGrok`, value: 'Tradez la crypto révolutionnaire', inline: true },
+      { name: `${SYMBOLS.CASINO} Casino VIP`, value: 'Jeux immersifs et récompenses', inline: true },
+      { name: `${SYMBOLS.SUCCESS} Commandes Essentielles`, value: '`/profil` • `/job` • `/crypto` • `/casino` • `/immo` • `/guild`', inline: false }
     )
-    .setFooter({ text: 'Amusez-vous et jouez de manière responsable !' });
+    .setFooter({ text: 'GrokCity • Votre succès commence maintenant • Investissez intelligemment' })
+    .setTimestamp();
   await interaction.reply({ embeds: [embed] });
 }

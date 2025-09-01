@@ -61,6 +61,26 @@ function init() {
   if (!colNames.includes('last_node')) {
     db.prepare('ALTER TABLE users ADD COLUMN last_node INTEGER NOT NULL DEFAULT 0').run();
   }
+  // crypto_balance holds BitGrok balance in satoshis
+  if (!colNames.includes('crypto_balance')) {
+    db.prepare('ALTER TABLE users ADD COLUMN crypto_balance INTEGER NOT NULL DEFAULT 0').run();
+  }
+  // crypto_staking holds staked BitGrok in satoshis
+  if (!colNames.includes('crypto_staking')) {
+    db.prepare('ALTER TABLE users ADD COLUMN crypto_staking INTEGER NOT NULL DEFAULT 0').run();
+  }
+  // staking_last_claim stores timestamp of last staking rewards claim
+  if (!colNames.includes('staking_last_claim')) {
+    db.prepare('ALTER TABLE users ADD COLUMN staking_last_claim INTEGER NOT NULL DEFAULT 0').run();
+  }
+  // vip_tier stores user's VIP status
+  if (!colNames.includes('vip_tier')) {
+    db.prepare('ALTER TABLE users ADD COLUMN vip_tier TEXT DEFAULT NULL').run();
+  }
+  // total_wagered tracks lifetime casino spending for VIP tiers
+  if (!colNames.includes('total_wagered')) {
+    db.prepare('ALTER TABLE users ADD COLUMN total_wagered INTEGER NOT NULL DEFAULT 0').run();
+  }
 
   db.prepare(`CREATE TABLE IF NOT EXISTS loans (
     user_id TEXT PRIMARY KEY,
@@ -246,6 +266,45 @@ function withdrawStake(userId, amountCents) {
     stable_balance: user.stable_balance + toWithdraw
   });
   return toWithdraw;
+}
+
+// Crypto balance functions (BitGrok in satoshis)
+function adjustCryptoBalance(userId, delta) {
+  const user = getUser(userId);
+  const newBalance = Math.max(0, (user.crypto_balance || 0) + delta);
+  updateUser(userId, { crypto_balance: newBalance });
+  return newBalance;
+}
+
+function adjustCryptoStaking(userId, delta) {
+  const user = getUser(userId);
+  const newBalance = Math.max(0, (user.crypto_staking || 0) + delta);
+  updateUser(userId, { crypto_staking: newBalance });
+  return newBalance;
+}
+
+// VIP system
+function updateVipTier(userId, wageredAmount = 0) {
+  const user = getUser(userId);
+  const totalWagered = (user.total_wagered || 0) + wageredAmount;
+  updateUser(userId, { total_wagered: totalWagered });
+  
+  let newTier = null;
+  if (totalWagered >= 1000000) newTier = 'diamond';
+  else if (totalWagered >= 200000) newTier = 'gold';
+  else if (totalWagered >= 50000) newTier = 'silver';
+  else if (totalWagered >= 10000) newTier = 'bronze';
+  
+  if (newTier !== user.vip_tier) {
+    updateUser(userId, { vip_tier: newTier });
+  }
+  
+  return newTier;
+}
+
+function getVipTier(userId) {
+  const user = getUser(userId);
+  return user.vip_tier;
 }
 
 // Mining nodes
@@ -550,6 +609,11 @@ export default {
   addNode,
   claimNodeYield
   ,
+  // Crypto functions
+  adjustCryptoBalance,
+  adjustCryptoStaking,
+  updateVipTier,
+  getVipTier,
   // Settings and news functions
   setSetting,
   getSetting,
