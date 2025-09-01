@@ -3,6 +3,7 @@ import { formatCents } from '../utils/money.js';
 
 export const data = new SlashCommandBuilder()
   .setName('casino')
+  .setDescription('🎰 Accéder au casino VIP de GrokCity');
 
 export async function execute(interaction, db, config) {
   const user = db.getUser(interaction.user.id);
