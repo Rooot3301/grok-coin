@@ -1,7 +1,7 @@
 // Symboles et emojis pour GrokCoin
 export const SYMBOLS = {
   // Monnaies
-  GROKCOIN: '💎',
+  GROKCOIN: 'Ǥ',
   BITGROK: '₿',
   
   // Économie
@@ -69,12 +69,12 @@ export const COLORS = {
 // Formatage des montants
 export function formatGrokCoin(cents) {
   const amount = cents / 100;
-  return `${SYMBOLS.GROKCOIN} ${amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} GKC`;
+  return `${amount.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${SYMBOLS.GROKCOIN}`;
 }
 
 export function formatBitGrok(satoshis) {
   const amount = satoshis / 100000000; // 1 BitGrok = 100M satoshis
-  return `${SYMBOLS.BITGROK} ${amount.toLocaleString('fr-FR', { minimumFractionDigits: 8, maximumFractionDigits: 8 })} BTG`;
+  return `${amount.toLocaleString('fr-FR', { minimumFractionDigits: 8, maximumFractionDigits: 8 })} ${SYMBOLS.BITGROK}`;
 }
 
 export function formatPrice(cents) {
@@ -91,7 +91,7 @@ export function createStyledEmbed(title, description, color = COLORS.INFO) {
     timestamp: new Date().toISOString(),
     footer: {
       text: 'GrokCity • Économie Virtuelle',
-      icon_url: 'https://images.pexels.com/photos/730547/pexels-photo-730547.jpeg?auto=compress&cs=tinysrgb&w=32&h=32'
+      icon_url: 'https://images.pexels.com/photos/844124/pexels-photo-844124.jpeg?auto=compress&cs=tinysrgb&w=32&h=32'
     }
   };
 }
