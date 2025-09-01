@@ -2,8 +2,6 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 
 export const data = new SlashCommandBuilder()
   .setName('start')
-  .setDescription('🚀 Commencer votre aventure dans GrokCity')
-  .setDMPermission(true);
 
 export async function execute(interaction, db, config) {
   const uid = interaction.user.id;

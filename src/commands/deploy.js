@@ -4,7 +4,6 @@ import { COLORS } from '../utils/symbols.js';
 export const data = new SlashCommandBuilder()
   .setName('deploy')
   .setDescription('🚀 Commandes de déploiement et maintenance (Admin seulement)')
-  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .addSubcommand(sub => sub
     .setName('status')
     .setDescription('Vérifier le statut du bot'))

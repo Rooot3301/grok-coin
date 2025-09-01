@@ -6,8 +6,6 @@ import { SlashCommandBuilder, PermissionFlagsBits, ChannelType } from 'discord.j
 export const data = new SlashCommandBuilder()
   .setName('config')
   .setDescription('Configurer les paramètres du bot (réservé aux admins)')
-  .setDMPermission(false)
-  .setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
   .addSubcommand(sub => sub
     .setName('logs')
     .setDescription('Définir le salon des logs')

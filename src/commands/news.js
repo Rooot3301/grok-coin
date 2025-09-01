@@ -7,7 +7,6 @@ import { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } from 'discord.
 export const data = new SlashCommandBuilder()
   .setName('news')
   .setDescription('Consulter ou gérer les actualités de CopaingCity')
-  .setDMPermission(false)
   .addSubcommand(sub => sub
     .setName('voir')
     .setDescription('Afficher les actualités en cours'))

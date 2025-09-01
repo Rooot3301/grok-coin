@@ -3,8 +3,6 @@ import { SYMBOLS, COLORS } from '../utils/symbols.js';
 
 export const data = new SlashCommandBuilder()
   .setName('menu')
-  .setDescription('🎯 Menu principal interactif de GrokCity')
-  .setDMPermission(false);
 
 export async function execute(interaction, db, config) {
   const embed = new EmbedBuilder()
