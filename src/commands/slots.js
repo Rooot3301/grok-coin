@@ -93,6 +93,7 @@ function formatReels(reels) {
 export const data = new SlashCommandBuilder()
   .setName('slots')
   .setDescription('🎰 Jouer aux machines à sous')
+  .setDMPermission(false)
   .addNumberOption(opt => opt.setName('mise').setDescription('Montant à miser (GKC)').setRequired(true));
 
 export async function execute(interaction, db, config) {

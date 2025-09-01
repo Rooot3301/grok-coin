@@ -4,6 +4,7 @@ import { formatCents, toCents } from '../utils/money.js';
 export const data = new SlashCommandBuilder()
   .setName('guild')
   .setDescription('🏛️ Système de guildes')
+  .setDMPermission(false)
   .addSubcommand(sub => sub
     .setName('create')
     .setDescription('Créer une nouvelle guilde')

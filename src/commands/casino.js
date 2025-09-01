@@ -3,7 +3,8 @@ import { formatCents } from '../utils/money.js';
 
 export const data = new SlashCommandBuilder()
   .setName('casino')
-  .setDescription('🎰 Menu principal du casino');
+  .setDescription('🎰 Menu principal du casino')
+  .setDMPermission(false);
 
 export async function execute(interaction, db, config) {
   const user = db.getUser(interaction.user.id);

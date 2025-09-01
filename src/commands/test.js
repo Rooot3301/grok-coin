@@ -3,7 +3,8 @@ import { formatCents } from '../utils/money.js';
 
 export const data = new SlashCommandBuilder()
   .setName('test')
-  .setDescription('🧪 Tester les fonctionnalités du bot');
+  .setDescription('🧪 Tester les fonctionnalités du bot')
+  .setDMPermission(false);
 
 export async function execute(interaction, db, config) {
   const uid = interaction.user.id;

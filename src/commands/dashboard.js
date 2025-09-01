@@ -4,7 +4,8 @@ import { getCurrentCryptoPrice, getEvent } from '../events.js';
 
 export const data = new SlashCommandBuilder()
   .setName('dashboard')
-  .setDescription('📊 Tableau de bord principal de GrokCity');
+  .setDescription('📊 Tableau de bord principal de GrokCity')
+  .setDMPermission(false);
 
 export async function execute(interaction, db, config) {
   const uid = interaction.user.id;
