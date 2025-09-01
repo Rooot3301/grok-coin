@@ -1,6 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder, AttachmentBuilder } from 'discord.js';
 import fs from 'fs';
-import { COLORS } from '../utils/symbols.js';
 
 /**
  * Commande principale du casino. Elle affiche un menu d'aperçu des jeux disponibles et
@@ -19,7 +18,7 @@ export async function execute(interaction, db, config) {
   // Construire l'embed de présentation du casino
   const embed = new EmbedBuilder()
     .setTitle('🎰 Bienvenue au GrokCasino')
-    .setColor(COLORS.CASINO)
+    .setColor(0xe74c3c)
     .setDescription(
       '**Choisissez votre jeu parmi les options ci-dessous !**\n\n' +
       '🃏 **/blackjack** → Blackjack interactif avec boutons\n' +

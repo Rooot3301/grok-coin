@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import { formatCents, toCents } from '../utils/money.js';
 import { getEvent } from '../events.js';
 
@@ -31,22 +31,22 @@ export async function execute(interaction, db, config) {
       const jobList = Object.keys(jobs).map(job => `${jobs[job].emoji} **${job}**`).join('\n');
       const embed = new EmbedBuilder()
         .setTitle('💼 Métiers Disponibles')
-        .setColor(COLORS.INFO)
+        .setColor(0x3742fa)
         .setDescription('**Choisissez parmi ces carrières prestigieuses :**\n\n' + jobList)
         .setFooter({ text: 'Utilisez /job choisir <métier> pour sélectionner' });
-      return interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({ embeds: [embed], flags: 64 });
     }
     db.setJob(uid, jobName);
     
     const embed = new EmbedBuilder()
       .setTitle('💼 Carrière Choisie')
-      .setColor(COLORS.SUCCESS)
+      .setColor(0x00ff88)
       .setDescription(`${jobs[jobName].emoji} Vous êtes maintenant **${jobName}** !\n\n*${jobs[jobName].description}*\n\nSalaire : **${jobs[jobName].salary} Ǥ** par shift`)
       .setFooter({ text: 'Utilisez /job shift pour commencer à travailler !' });
     return interaction.reply({ embeds: [embed] });
   } else if (sub === 'shift') {
     if (!user.job) {
-      return interaction.reply({ content: 'Vous n\'avez pas encore choisi de métier. Utilisez /job choisir pour en choisir un.', ephemeral: true });
+      return interaction.reply({ content: 'Vous n\'avez pas encore choisi de métier. Utilisez /job choisir pour en choisir un.', flags: 64 });
     }
     // Reset daily shifts if last shift was yesterday or earlier
     const now = Date.now();
@@ -55,14 +55,14 @@ export async function execute(interaction, db, config) {
       db.resetDailyShifts(uid);
     }
     if ((user.shifts_count || 0) >= maxShifts) {
-      return interaction.reply({ content: `Vous avez déjà effectué vos ${maxShifts} shifts pour aujourd\'hui. Revenez demain !`, ephemeral: true });
+      return interaction.reply({ content: `Vous avez déjà effectué vos ${maxShifts} shifts pour aujourd\'hui. Revenez demain !`, flags: 64 });
     }
     // Check cooldown
     const last = user.last_shift || 0;
     const cooldownMs = cooldownMinutes * 60 * 1000;
     if (last && now - last < cooldownMs) {
       const waitMinutes = Math.ceil((cooldownMs - (now - last)) / 60000);
-      return interaction.reply({ content: `⏳ Vous devez attendre encore ${waitMinutes} minute(s) avant de refaire un shift.`, ephemeral: true });
+      return interaction.reply({ content: `⏳ Vous devez attendre encore ${waitMinutes} minute(s) avant de refaire un shift.`, flags: 64 });
     }
     // Pay salary and apply event multiplier if applicable
     let salary = jobs[user.job].salary;
@@ -84,6 +84,18 @@ export async function execute(interaction, db, config) {
       db.incrementShiftCount(uid);
       db.updateUser(uid, { last_shift: now });
     }
-    return interaction.reply(`💼 Vous avez travaillé et gagné **${salary.toFixed(2)} GKC** !`);
+    
+    const embed = new EmbedBuilder()
+      .setTitle('💼 Shift Terminé')
+      .setColor(0x00ff88)
+      .setDescription(`${jobs[user.job].emoji} Excellent travail ! Vous avez gagné **${salary.toFixed(2)} Ǥ** !`)
+      .addFields(
+        { name: '💰 Nouveau solde', value: `${formatCents(db.getUser(uid).balance)} Ǥ`, inline: true },
+        { name: '📊 Shifts aujourd\'hui', value: `${db.getUser(uid).shifts_count}/${maxShifts}`, inline: true }
+      )
+      .setFooter({ text: '💼 Continuez à travailler pour prospérer !' })
+      .setTimestamp();
+    
+    return interaction.reply({ embeds: [embed] });
   }
 }

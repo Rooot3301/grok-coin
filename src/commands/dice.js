@@ -15,11 +15,15 @@ export async function execute(interaction, db, config) {
   const thresholdInput = interaction.options.getInteger('seuil');
   const threshold = thresholdInput ? Math.min(Math.max(thresholdInput, 1), 99) : 50;
   const stake = toCents(amount);
-  if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', ephermal: true });
-  if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', ephermal: true });
+  if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', flags: 64 });
+  if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', flags: 64 });
   
   // Deduct stake
   db.adjustBalance(uid, -stake);
+  
+  // Update VIP tier
+  db.updateVipTier(uid, stake);
+  
   // Roll dice
   const roll = Math.floor(Math.random() * 100); // 0-99
   let message;

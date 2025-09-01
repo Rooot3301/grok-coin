@@ -17,11 +17,15 @@ export async function execute(interaction, db, config) {
   const amount = interaction.options.getNumber('mise');
   const guess = interaction.options.getString('choix');
   const stake = toCents(amount);
-  if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', ephemeral: true });
-  if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', ephemeral: true });
+  if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', flags: 64 });
+  if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', flags: 64 });
   
   // Deduct stake
   db.adjustBalance(uid, -stake);
+  
+  // Update VIP tier
+  db.updateVipTier(uid, stake);
+  
   // Generate random result
   const outcome = Math.random() < 0.5 ? 'Pile' : 'Face';
   let message;
