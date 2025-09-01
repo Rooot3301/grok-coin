@@ -44,5 +44,50 @@ export async function execute(interaction, db, config) {
     .setFooter({ text: '🎰 GrokCasino • Jeu responsable' })
     .setTimestamp();
   
-  return interaction.reply({ embeds: [embed] });
+  const row = new ActionRowBuilder()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId('casino_slots')
+        .setLabel('Slots')
+        .setStyle(ButtonStyle.Primary)
+        .setEmoji('🎰'),
+      new ButtonBuilder()
+        .setCustomId('casino_blackjack')
+        .setLabel('Blackjack')
+        .setStyle(ButtonStyle.Success)
+        .setEmoji('🃏'),
+      new ButtonBuilder()
+        .setCustomId('casino_roulette')
+        .setLabel('Roulette')
+        .setStyle(ButtonStyle.Danger)
+        .setEmoji('🎡')
+    );
+
+  const response = await interaction.reply({ embeds: [embed], components: [row] });
+  
+  const collector = response.createMessageComponentCollector({
+    componentType: ComponentType.Button,
+    time: 60000,
+    filter: i => i.user.id === interaction.user.id
+  });
+
+  collector.on('collect', async i => {
+    try {
+      const game = i.customId.split('_')[1];
+      await i.reply({ 
+        content: `🎮 Utilisez la commande \`/${game}\` pour jouer !`, 
+        flags: 64 
+      });
+    } catch (error) {
+      console.error('Erreur interaction casino:', error);
+    }
+  });
+
+  collector.on('end', () => {
+    const disabledRow = new ActionRowBuilder()
+      .addComponents(
+        ...row.components.map(button => ButtonBuilder.from(button).setDisabled(true))
+      );
+    interaction.editReply({ components: [disabledRow] }).catch(() => {});
+  });
 }

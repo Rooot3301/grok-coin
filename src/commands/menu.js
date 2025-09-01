@@ -71,113 +71,51 @@ export async function execute(interaction, db, config) {
 
   collector.on('collect', async i => {
     if (i.user.id !== interaction.user.id) {
-      return i.reply({ content: 'Ce menu n\'est pas pour vous !', flags: 64 });
+      return i.reply({ content: 'Ce menu n\'est pas pour vous !', ephemeral: true });
     }
 
-    const category = i.values[0];
-    let responseEmbed;
+    try {
+      const category = i.values[0];
+      let responseEmbed;
+      switch (category) {
+        case 'economy':
+          responseEmbed = new EmbedBuilder()
+            .setTitle(`💰 Économie & Finances`)
+            .setColor(COLORS.SUCCESS)
+            .setDescription('**Commandes disponibles :**')
+            .addFields(
+              { name: '`/profil`', value: 'Votre profil complet et patrimoine', inline: true },
+              { name: '`/banque`', value: 'Dépôts, retraits, prêts, intérêts', inline: true },
+              { name: '`/job`', value: 'Choisir un métier et travailler', inline: true },
+              { name: '`/payer`', value: 'Transférer des GrokCoins', inline: true },
+              { name: '`/dashboard`', value: 'Tableau de bord principal', inline: true },
+              { name: '`/start`', value: 'Commencer votre aventure', inline: true }
+            );
+          break;
+          
+        case 'casino':
+          responseEmbed = new EmbedBuilder()
+            .setTitle(`🎰 Casino VIP`)
+            .setColor(COLORS.CASINO)
+            .setDescription('**Jeux disponibles :**')
+            .addFields(
+              { name: '`/slots`', value: 'Machines à sous premium', inline: true },
+              { name: '`/casino`', value: 'Menu principal du casino', inline: true },
+              { name: '`/test`', value: 'Tester le bot', inline: true }
+            );
+          break;
+          
+        default:
+          responseEmbed = new EmbedBuilder()
+            .setTitle(`🚧 En développement`)
+            .setColor(COLORS.WARNING)
+            .setDescription('Cette section sera bientôt disponible !');
+      }
 
-    switch (category) {
-      case 'economy':
-        responseEmbed = new EmbedBuilder()
-          .setTitle(`💰 Économie & Finances`)
-          .setColor(COLORS.SUCCESS)
-          .setDescription('**Commandes disponibles :**')
-          .addFields(
-            { name: '`/profil`', value: 'Votre profil complet et patrimoine', inline: true },
-            { name: '`/banque`', value: 'Dépôts, retraits, prêts, intérêts', inline: true },
-            { name: '`/job`', value: 'Choisir un métier et travailler', inline: true },
-            { name: '`/payer`', value: 'Transférer des GrokCoins', inline: true },
-            { name: '`/dashboard`', value: 'Tableau de bord principal', inline: true },
-            { name: '`/start`', value: 'Commencer votre aventure', inline: true }
-          );
-        break;
-        
-      case 'crypto':
-        responseEmbed = new EmbedBuilder()
-          .setTitle(`₿ Trading BitGrok`)
-          .setColor(COLORS.CRYPTO_GREEN)
-          .setDescription('**Marché des cryptomonnaies :**')
-          .addFields(
-            { name: '`/crypto prix`', value: 'Prix actuel et graphiques', inline: true },
-            { name: '`/crypto acheter`', value: 'Acheter du BitGrok', inline: true },
-            { name: '`/crypto vendre`', value: 'Vendre vos BitGrok', inline: true },
-            { name: '`/crypto staking`', value: 'Staker pour des récompenses', inline: true },
-            { name: '`/crypto portefeuille`', value: 'Votre portfolio crypto', inline: true },
-            { name: '`/dex`', value: 'Échange GKC ↔ sGKC', inline: true }
-          );
-        break;
-        
-      case 'casino':
-        responseEmbed = new EmbedBuilder()
-          .setTitle(`🎰 Casino VIP`)
-          .setColor(COLORS.CASINO)
-          .setDescription('**Jeux disponibles :**')
-          .addFields(
-            { name: '`/blackjack`', value: 'Blackjack interactif', inline: true },
-            { name: '`/poker`', value: 'Video Poker Jacks or Better', inline: true },
-            { name: '`/slots`', value: 'Machines à sous premium', inline: true },
-            { name: '`/baccarat`', value: 'Baccarat classique', inline: true },
-            { name: '`/roulette`', value: 'Roulette européenne', inline: true },
-            { name: '`/casino`', value: 'Menu principal du casino', inline: true }
-          );
-        break;
-        
-      case 'immo':
-        responseEmbed = new EmbedBuilder()
-          .setTitle(`🏠 Immobilier`)
-          .setColor(COLORS.IMMO)
-          .setDescription('**Investissement immobilier :**')
-          .addFields(
-            { name: '`/immo liste`', value: 'Biens disponibles à l\'achat', inline: true },
-            { name: '`/immo acheter`', value: 'Acheter un bien immobilier', inline: true },
-            { name: '`/immo mes_biens`', value: 'Vos propriétés et revenus', inline: true },
-            { name: '`/immo loyer`', value: 'Payer votre loyer', inline: true },
-            { name: '`/immo statut`', value: 'Statut de votre logement', inline: true }
-          );
-        break;
-        
-      case 'guild':
-        responseEmbed = new EmbedBuilder()
-          .setTitle(`🏛️ Guildes & Alliances`)
-          .setColor(COLORS.GOLD)
-          .setDescription('**Système de guildes :**')
-          .addFields(
-            { name: '`/guild create`', value: 'Créer une nouvelle guilde', inline: true },
-            { name: '`/guild join`', value: 'Rejoindre une guilde', inline: true },
-            { name: '`/guild info`', value: 'Informations sur une guilde', inline: true },
-            { name: '`/guild treasury`', value: 'Gérer le trésor de guilde', inline: true },
-            { name: '`/guild war`', value: 'Déclarer la guerre', inline: true },
-            { name: '`/guild alliance`', value: 'Proposer une alliance', inline: true }
-          );
-        break;
-        
-      case 'events':
-        responseEmbed = new EmbedBuilder()
-          .setTitle(`🔥 Événements & News`)
-          .setColor(COLORS.WARNING)
-          .setDescription('**Actualités économiques :**')
-          .addFields(
-            { name: '`/event`', value: 'Événement économique en cours', inline: true },
-            { name: '`/news voir`', value: 'Actualités de GrokCity', inline: true },
-            { name: '`/eco stats`', value: 'Statistiques économiques', inline: true }
-          );
-        break;
-        
-      case 'help':
-        responseEmbed = new EmbedBuilder()
-          .setTitle(`❓ Aide & Guides`)
-          .setColor(COLORS.INFO)
-          .setDescription('**Support et tutoriels :**')
-          .addFields(
-            { name: '`/aide`', value: 'Liste complète des commandes', inline: true },
-            { name: '`/guide`', value: 'Guide interactif pour débutants', inline: true },
-            { name: '`/menu`', value: 'Ce menu interactif', inline: true }
-          );
-        break;
+      await i.update({ embeds: [responseEmbed], components: [row] });
+    } catch (error) {
+      console.error('Erreur interaction menu:', error);
     }
-
-    await i.update({ embeds: [responseEmbed], components: [row] });
   });
 
   collector.on('end', () => {

@@ -68,10 +68,41 @@ client.once('clientReady', () => {
 });
 
 client.on('interactionCreate', async interaction => {
-  if (!interaction.isChatInputCommand()) return;
+  if (!interaction.isChatInputCommand() && !interaction.isButton() && !interaction.isStringSelectMenu()) return;
   
-  const command = commands.get(interaction.commandName);
-  if (!command) return;
+  // Handle button and select menu interactions
+  if (interaction.isButton() || interaction.isStringSelectMenu()) {
+    // Let the original command handle the interaction
+    return;
+  }
+  
+  // Handle slash commands
+  if (interaction.isChatInputCommand()) {
+    const command = commands.get(interaction.commandName);
+    if (!command) return;
+    
+    try {
+      await command.execute(interaction, db, config);
+    } catch (error) {
+      console.error(`❌ Erreur commande ${interaction.commandName}:`, error.message);
+      
+      const errorMessage = {
+        content: '❌ Une erreur est survenue lors de l\'exécution de la commande.',
+        flags: 64
+      };
+      
+      try {
+        if (interaction.deferred) {
+          await interaction.editReply(errorMessage);
+        } else if (!interaction.replied) {
+          await interaction.reply(errorMessage);
+        }
+      } catch (followUpError) {
+        console.error('Erreur lors de l\'envoi du message d\'erreur:', followUpError.message);
+      }
+    }
+  }
+});
   
   try {
     await command.execute(interaction, db, config);

@@ -110,24 +110,29 @@ export async function execute(interaction, db, config) {
 
   collector.on('collect', async i => {
     if (i.user.id !== uid) {
-      return i.reply({ content: 'Ce dashboard n\'est pas pour vous !', flags: 64 });
+      return i.reply({ content: 'Ce dashboard n\'est pas pour vous !', ephemeral: true });
     }
 
-    const action = i.customId.split('_')[1];
-    let commandName = '';
-    
-    switch (action) {
-      case 'profile': commandName = 'profil'; break;
-      case 'work': commandName = 'job'; break;
-      case 'bank': commandName = 'banque'; break;
-      case 'crypto': commandName = 'crypto'; break;
-      case 'casino': commandName = 'casino'; break;
-      case 'immo': commandName = 'immo'; break;
-      case 'guild': commandName = 'guild'; break;
-      case 'help': commandName = 'aide'; break;
+    try {
+      await i.deferReply({ ephemeral: true });
+      
+      const action = i.customId.split('_')[1];
+      let commandName = '';
+      
+      switch (action) {
+        case 'profile': commandName = 'profil'; break;
+        case 'work': commandName = 'job'; break;
+        case 'bank': commandName = 'banque'; break;
+        case 'crypto': commandName = 'crypto'; break;
+        case 'casino': commandName = 'casino'; break;
+        case 'immo': commandName = 'immo'; break;
+        case 'guild': commandName = 'guild'; break;
+        case 'help': commandName = 'aide'; break;
+      }
+      await i.editReply({ content: `🚀 Utilisez la commande \`/${commandName}\` pour accéder à cette section !` });
+    } catch (error) {
+      console.error('Erreur interaction dashboard:', error);
     }
-
-    await i.reply({ content: `🚀 Utilisez la commande \`/${commandName}\` pour accéder à cette section !`, flags: 64 });
   });
 
   collector.on('end', () => {

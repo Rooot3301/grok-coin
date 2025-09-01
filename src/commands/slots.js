@@ -161,53 +161,61 @@ export async function execute(interaction, db, config) {
   
   const collector = response.createMessageComponentCollector({
     componentType: ComponentType.Button,
-    time: 30000
+    time: 60000,
+    filter: i => i.user.id === uid
   });
 
   collector.on('collect', async i => {
-    if (i.user.id !== uid) {
-      return i.reply({ content: '❌ Cette machine n\'est pas pour vous.', flags: 64 });
-    }
-
-    const currentUser = db.getUser(uid);
-    if (currentUser.balance < stake) {
-      return i.reply({ content: '❌ Solde insuffisant.', flags: 64 });
-    }
-
-    if (i.customId === 'slots_again') {
+    try {
       await i.deferUpdate();
-      // Relancer une partie
-      const newReels = spinReels();
-      const newWins = checkWinningLines(newReels);
-      
-      db.adjustBalance(uid, -stake);
-      let newPayout = 0;
-      let newDescription = '';
-      
-      if (newWins.length > 0) {
-        const feePct = config.casino?.fee_pct || 0.01;
-        for (const win of newWins) {
-          const payout = Math.floor(stake * win.multiplier * (1 - feePct));
-          newPayout += payout;
-          const lineNames = ['Haut', 'Milieu', 'Bas', 'Diagonale \\', 'Diagonale /'];
-          newDescription += `${win.symbol.emoji} x${win.count} (${lineNames[win.line]}): +${formatCents(payout)} GKC\n`;
-        }
-        db.adjustBalance(uid, newPayout);
-      } else {
-        newDescription = 'Aucune combinaison gagnante';
+
+      const currentUser = db.getUser(uid);
+      if (currentUser.balance < stake) {
+        return i.followUp({ content: '❌ Solde insuffisant.', flags: 64 });
       }
 
-      const newEmbed = new EmbedBuilder()
-        .setTitle('🎰 Machine à Sous')
-        .setColor(newPayout > 0 ? 0x4caf50 : 0xf44336)
-        .setDescription(formatReels(newReels))
-        .addFields(
-          { name: '🎯 Résultats', value: newDescription, inline: false },
-          { name: '💰 Gain/Perte', value: newPayout > 0 ? `+${formatCents(newPayout - stake)} GKC` : `-${formatCents(stake)} GKC`, inline: true },
-          { name: '💳 Solde actuel', value: `${formatCents(db.getUser(uid).balance)} GKC`, inline: true }
-        );
+      if (i.customId === 'slots_again') {
+        // Relancer une partie
+        const newReels = spinReels();
+        const newWins = checkWinningLines(newReels);
+        
+        db.adjustBalance(uid, -stake);
+        db.updateVipTier(uid, stake);
+        let newPayout = 0;
+        let newDescription = '';
+        
+        if (newWins.length > 0) {
+          const feePct = config.casino?.fee_pct || 0.01;
+          for (const win of newWins) {
+            const payout = Math.floor(stake * win.multiplier * (1 - feePct));
+            newPayout += payout;
+            const lineNames = ['Haut', 'Milieu', 'Bas', 'Diagonale \\', 'Diagonale /'];
+            newDescription += `${win.symbol.emoji} x${win.count} (${lineNames[win.line]}): +${formatCents(payout)} GKC\n`;
+          }
+          db.adjustBalance(uid, newPayout);
+        } else {
+          newDescription = 'Aucune combinaison gagnante';
+        }
 
-      await i.editReply({ embeds: [newEmbed], components: [row] });
+        const newEmbed = new EmbedBuilder()
+          .setTitle('🎰 Machine à Sous')
+          .setColor(newPayout > 0 ? 0x4caf50 : 0xf44336)
+          .setDescription(formatReels(newReels))
+          .addFields(
+            { name: '🎯 Résultats', value: newDescription, inline: false },
+            { name: '💰 Gain/Perte', value: newPayout > 0 ? `+${formatCents(newPayout - stake)} GKC` : `-${formatCents(stake)} GKC`, inline: true },
+            { name: '💳 Solde actuel', value: `${formatCents(db.getUser(uid).balance)} GKC`, inline: true }
+          );
+
+        await i.editReply({ embeds: [newEmbed], components: [row] });
+      }
+    } catch (error) {
+      console.error('Erreur interaction slots:', error);
+      try {
+        await i.followUp({ content: '❌ Erreur lors de l\'interaction.', flags: 64 });
+      } catch (e) {
+        console.error('Erreur followUp:', e);
+      }
     }
   });
 
