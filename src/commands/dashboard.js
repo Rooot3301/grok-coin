@@ -8,12 +8,13 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction, db, config) {
   const uid = interaction.user.id;
-  const user = db.getUser(uid);
+  const user = await db.getUser(uid);
   const cryptoPrice = getCurrentCryptoPrice();
   const currentEvent = getEvent();
   
   // Stats rapides
-  const totalUsers = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
+  const totalUsersResult = await db.execute('SELECT COUNT(*) as count FROM users');
+  const totalUsers = totalUsersResult.rows[0].count;
   const totalCirculation = db.getTotalCirculation();
   const avgWealth = totalUsers > 0 ? Math.floor(totalCirculation / totalUsers) : 0;
   

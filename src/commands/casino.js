@@ -6,8 +6,8 @@ export const data = new SlashCommandBuilder()
   .setDescription('🎰 Accéder au casino VIP de GrokCity');
 
 export async function execute(interaction, db, config) {
-  const user = db.getUser(interaction.user.id);
-  const vipTier = db.getVipTier(interaction.user.id);
+  const user = await db.getUser(interaction.user.id);
+  const vipTier = await db.getVipTier(interaction.user.id);
   
   const embed = new EmbedBuilder()
     .setTitle('🎰 GrokCasino')

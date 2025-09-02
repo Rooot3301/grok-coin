@@ -66,15 +66,15 @@ client.once('clientReady', () => {
   // Rich Presence amélioré
   function updatePresence() {
     try {
-      // Rotation des statuts toutes les 2 minutes
+      // Rotation des statuts toutes les 3 minutes avec plus de variété
       const statuses = [
         async () => {
-          const total = await db.getTotalCirculation();
+          const total = db.getTotalCirculation();
           const gkc = (total / 100).toLocaleString('fr-FR', { 
             minimumFractionDigits: 0, 
             maximumFractionDigits: 0 
           });
-          return { name: `💎 ${gkc} Ǥ en circulation`, type: 3 };
+          return { name: `💰 ${gkc} Ǥ en circulation`, type: 3 };
         },
         async () => {
           const price = getCurrentCryptoPrice();
@@ -82,7 +82,7 @@ client.once('clientReady', () => {
             minimumFractionDigits: 0, 
             maximumFractionDigits: 0 
           });
-          return { name: `₿ BitGrok: ${btgPrice} Ǥ`, type: 3 };
+          return { name: `₿ ${btgPrice} Ǥ/BitGrok`, type: 3 };
         },
         async () => {
           const totalUsersResult = await db.execute('SELECT COUNT(*) as count FROM users');
@@ -92,7 +92,7 @@ client.once('clientReady', () => {
         async () => {
           const event = getEvent();
           if (event) {
-            const timeLeft = Math.floor((event.endsAt - Date.now()) / 3600000);
+            const timeLeft = Math.max(1, Math.floor((event.endsAt - Date.now()) / 3600000));
             return { name: `🔥 ${event.name} (${timeLeft}h)`, type: 3 };
           } else {
             return { name: `🏙️ GrokCity • /start pour commencer`, type: 3 };
@@ -105,9 +105,22 @@ client.once('clientReady', () => {
           const wars = warsResult.rows[0].count;
           return { name: `🏛️ ${guilds} guildes • ${wars} guerres`, type: 3 };
         }
+        async () => {
+          const vipResult = await db.execute('SELECT COUNT(*) as count FROM users WHERE vip_tier IS NOT NULL');
+          const vipUsers = vipResult.rows[0].count;
+          return { name: `💎 ${vipUsers} joueurs VIP`, type: 3 };
+        },
+        async () => {
+          const richResult = await db.execute('SELECT COUNT(*) as count FROM users WHERE balance + bank_balance > 100000');
+          const richUsers = richResult.rows[0].count;
+          return { name: `🤑 ${richUsers} millionnaires`, type: 3 };
+        },
+        async () => {
+          return { name: `🎰 Casino • /casino pour jouer`, type: 3 };
+        }
       ];
       
-      const statusIndex = Math.floor(Date.now() / 120000) % statuses.length;
+      const statusIndex = Math.floor(Date.now() / 180000) % statuses.length;
       statuses[statusIndex]().then(activity => {
         client.user.setPresence({
           activities: [activity],
@@ -127,7 +140,7 @@ client.once('clientReady', () => {
   }
   
   updatePresence();
-  setInterval(updatePresence, 2 * 60 * 1000); // Toutes les 2 minutes pour rotation
+  setInterval(updatePresence, 3 * 60 * 1000); // Toutes les 3 minutes pour rotation
   
   // Nettoyage du cache toutes les 5 minutes
   setInterval(() => {

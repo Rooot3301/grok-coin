@@ -21,12 +21,12 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction, db, config) {
   const uid = interaction.user.id;
-  const user = db.getUser(uid);
+  const user = await db.getUser(uid);
   const sub = interaction.options.getSubcommand();
   
   if (sub === 'solde') {
-    db.updateLoanInterest(uid);
-    const loan = db.getLoan(uid);
+    await db.updateLoanInterest(uid);
+    const loan = await db.getLoan(uid);
     
     const embed = new EmbedBuilder()
       .setTitle('🏦 Situation Bancaire')
@@ -48,16 +48,16 @@ export async function execute(interaction, db, config) {
     if (cents <= 0) return interaction.reply({ content: 'Montant invalide.', flags: 64 });
     if (user.balance < cents) return interaction.reply({ content: 'Solde insuffisant.', flags: 64 });
     
-    db.adjustBalance(uid, -cents);
-    db.adjustBankBalance(uid, cents);
+    await db.adjustBalance(uid, -cents);
+    await db.adjustBankBalance(uid, cents);
     
     const embed = new EmbedBuilder()
       .setTitle('💸 Dépôt Effectué')
       .setColor(0x00ff88)
       .setDescription(`Dépôt de **${amount.toFixed(2)} Ǥ** effectué avec succès !`)
       .addFields(
-        { name: '💰 Liquidités', value: `${formatCents(db.getUser(uid).balance)} Ǥ`, inline: true },
-        { name: '🏦 Épargne', value: `${formatCents(db.getUser(uid).bank_balance)} Ǥ`, inline: true }
+        { name: '💰 Liquidités', value: `${formatCents((await db.getUser(uid)).balance)} Ǥ`, inline: true },
+        { name: '🏦 Épargne', value: `${formatCents((await db.getUser(uid)).bank_balance)} Ǥ`, inline: true }
       )
       .setFooter({ text: '🏦 Votre argent est en sécurité' })
       .setTimestamp();

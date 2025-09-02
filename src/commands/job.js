@@ -20,7 +20,7 @@ export const data = new SlashCommandBuilder()
 export async function execute(interaction, db, config) {
   const uid = interaction.user.id;
   const sub = interaction.options.getSubcommand();
-  const user = db.getUser(uid);
+  const user = await db.getUser(uid);
   const jobs = config.economy.jobs;
   const maxShifts = config.economy.job_max_shifts_per_day || 3;
   const cooldownMinutes = config.economy.job_cooldown_minutes || 30;
@@ -36,7 +36,7 @@ export async function execute(interaction, db, config) {
         .setFooter({ text: 'Utilisez /job choisir <métier> pour sélectionner' });
       return interaction.reply({ embeds: [embed], flags: 64 });
     }
-    db.setJob(uid, jobName);
+    await db.setJob(uid, jobName);
     
     const embed = new EmbedBuilder()
       .setTitle('💼 Carrière Choisie')
@@ -52,7 +52,7 @@ export async function execute(interaction, db, config) {
     const now = Date.now();
     const dayMs = 24 * 60 * 60 * 1000;
     if (user.last_shift && now - user.last_shift > dayMs) {
-      db.resetDailyShifts(uid);
+      await db.resetDailyShifts(uid);
     }
     if ((user.shifts_count || 0) >= maxShifts) {
       return interaction.reply({ content: `Vous avez déjà effectué vos ${maxShifts} shifts pour aujourd\'hui. Revenez demain !`, flags: 64 });
@@ -75,14 +75,14 @@ export async function execute(interaction, db, config) {
       }
     }
     const salaryCents = toCents(salary);
-    db.adjustBalance(uid, salaryCents);
+    await db.adjustBalance(uid, salaryCents);
     // Update shift info
     if (!last || now - last > dayMs) {
       // new day, reset shift count to 1
-      db.updateShift(uid);
+      await db.updateShift(uid);
     } else {
-      db.incrementShiftCount(uid);
-      db.updateUser(uid, { last_shift: now });
+      await db.incrementShiftCount(uid);
+      await db.updateUser(uid, { last_shift: now });
     }
     
     const embed = new EmbedBuilder()
@@ -90,8 +90,8 @@ export async function execute(interaction, db, config) {
       .setColor(0x00ff88)
       .setDescription(`${jobs[user.job].emoji} Excellent travail ! Vous avez gagné **${salary.toFixed(2)} Ǥ** !`)
       .addFields(
-        { name: '💰 Nouveau solde', value: `${formatCents(db.getUser(uid).balance)} Ǥ`, inline: true },
-        { name: '📊 Shifts aujourd\'hui', value: `${db.getUser(uid).shifts_count}/${maxShifts}`, inline: true }
+        { name: '💰 Nouveau solde', value: `${formatCents((await db.getUser(uid)).balance)} Ǥ`, inline: true },
+        { name: '📊 Shifts aujourd\'hui', value: `${(await db.getUser(uid)).shifts_count}/${maxShifts}`, inline: true }
       )
       .setFooter({ text: '💼 Continuez à travailler pour prospérer !' })
       .setTimestamp();

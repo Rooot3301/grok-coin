@@ -8,14 +8,14 @@ export const data = new SlashCommandBuilder()
 
 export async function execute(interaction, db, config) {
   const uid = interaction.user.id;
-  const user = db.getUser(uid);
+  const user = await db.getUser(uid);
   const currentCryptoPrice = getCurrentCryptoPrice();
-  const vipTier = db.getVipTier(uid);
+  const vipTier = await db.getVipTier(uid);
   
   // Mise à jour des intérêts de prêt
-  db.updateLoanInterest(uid);
-  const loan = db.getLoan(uid);
-  const properties = db.getUserProperties(uid);
+  await db.updateLoanInterest(uid);
+  const loan = await db.getLoan(uid);
+  const properties = await db.getUserProperties(uid);
   
   // Calcul du patrimoine total
   const cryptoValue = Math.floor(((user.crypto_balance || 0) + (user.crypto_staking || 0)) / 100000000 * currentCryptoPrice);
