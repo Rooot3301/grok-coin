@@ -12,10 +12,10 @@ export async function execute(interaction, db, config) {
   const cryptoPrice = getCurrentCryptoPrice();
   const currentEvent = getEvent();
   
-  // Stats rapides
+  // Stats rapides avec l'API libsql correcte
   const totalUsersResult = await db.execute('SELECT COUNT(*) as count FROM users');
   const totalUsers = totalUsersResult.rows[0].count;
-  const totalCirculation = db.getTotalCirculation();
+  const totalCirculation = await db.getTotalCirculation();
   const avgWealth = totalUsers > 0 ? Math.floor(totalCirculation / totalUsers) : 0;
   
   const embed = new EmbedBuilder()
@@ -43,7 +43,7 @@ export async function execute(interaction, db, config) {
 
   // Événement en cours
   if (currentEvent) {
-    const timeLeft = Math.floor((currentEvent.endsAt - Date.now()) / 3600000);
+    const timeLeft = Math.max(1, Math.floor((currentEvent.endsAt - Date.now()) / 3600000));
     embed.addFields({
       name: `🔥 Événement en Cours`,
       value: `**${currentEvent.name}**\n*Se termine dans ${timeLeft}h*\n${currentEvent.description.split('\n')[0]}`,
@@ -112,7 +112,7 @@ export async function execute(interaction, db, config) {
 
   collector.on('collect', async i => {
     try {
-      await i.deferReply({ ephemeral: true });
+      await i.deferReply({ flags: 64 });
       
       const action = i.customId.split('_')[1];
       let commandName = '';

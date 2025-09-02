@@ -19,7 +19,7 @@ if (!token) {
 }
 
 // Initialize database
-db.init();
+await db.init();
 
 // Create client
 const client = new Client({
@@ -31,20 +31,6 @@ const client = new Client({
 const commands = new Collection();
 const commandsPath = path.join(new URL(import.meta.url).pathname.replace(/index\.js$/, ''), 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-
-// Cache pour optimiser les performances
-const userCache = new Map();
-const cacheTimeout = 30000; // 30 secondes
-
-function getCachedUser(userId) {
-  const cached = userCache.get(userId);
-  if (cached && Date.now() - cached.timestamp < cacheTimeout) {
-    return cached.data;
-  }
-  const userData = db.getUser(userId);
-  userCache.set(userId, { data: userData, timestamp: Date.now() });
-  return userData;
-}
 
 for (const file of commandFiles) {
   try {
@@ -63,13 +49,14 @@ client.once('clientReady', () => {
   console.log(`📊 Serveurs: ${client.guilds.cache.size}`);
   console.log(`👥 Utilisateurs: ${client.users.cache.size}`);
   
-  // Rich Presence amélioré
-  function updatePresence() {
+  // Rich Presence ultra-amélioré avec rotation intelligente
+  let statusIndex = 0;
+  
+  async function updatePresence() {
     try {
-      // Rotation des statuts toutes les 3 minutes avec plus de variété
       const statuses = [
         async () => {
-          const total = db.getTotalCirculation();
+          const total = await db.getTotalCirculation();
           const gkc = (total / 100).toLocaleString('fr-FR', { 
             minimumFractionDigits: 0, 
             maximumFractionDigits: 0 
@@ -82,12 +69,13 @@ client.once('clientReady', () => {
             minimumFractionDigits: 0, 
             maximumFractionDigits: 0 
           });
-          return { name: `₿ ${btgPrice} Ǥ/BitGrok`, type: 3 };
+          const trend = price > 50000 ? '📈' : '📉';
+          return { name: `${trend} ${btgPrice} Ǥ/BitGrok`, type: 3 };
         },
         async () => {
           const totalUsersResult = await db.execute('SELECT COUNT(*) as count FROM users');
           const users = totalUsersResult.rows[0].count;
-          return { name: `👥 ${users} citoyens actifs`, type: 3 };
+          return { name: `👥 ${users.toLocaleString()} citoyens actifs`, type: 3 };
         },
         async () => {
           const event = getEvent();
@@ -104,48 +92,48 @@ client.once('clientReady', () => {
           const warsResult = await db.execute('SELECT COUNT(*) as count FROM guild_wars WHERE status = "active"');
           const wars = warsResult.rows[0].count;
           return { name: `🏛️ ${guilds} guildes • ${wars} guerres`, type: 3 };
-        }
+        },
         async () => {
           const vipResult = await db.execute('SELECT COUNT(*) as count FROM users WHERE vip_tier IS NOT NULL');
           const vipUsers = vipResult.rows[0].count;
           return { name: `💎 ${vipUsers} joueurs VIP`, type: 3 };
         },
         async () => {
-          const richResult = await db.execute('SELECT COUNT(*) as count FROM users WHERE balance + bank_balance > 100000');
+          const richResult = await db.execute('SELECT COUNT(*) as count FROM users WHERE balance + bank_balance >= 100000');
           const richUsers = richResult.rows[0].count;
           return { name: `🤑 ${richUsers} millionnaires`, type: 3 };
         },
         async () => {
-          return { name: `🎰 Casino • /casino pour jouer`, type: 3 };
+          return { name: `🎰 Casino VIP • /casino`, type: 3 };
+        },
+        async () => {
+          return { name: `⚔️ Guildes PvP • /guild`, type: 3 };
+        },
+        async () => {
+          return { name: `🏠 Immobilier • /immo`, type: 3 };
         }
       ];
       
-      const statusIndex = Math.floor(Date.now() / 180000) % statuses.length;
-      statuses[statusIndex]().then(activity => {
-        client.user.setPresence({
-          activities: [activity],
-          status: 'online'
-        });
-      }).catch(err => {
-        console.error('Erreur Rich Presence:', err.message);
-        // Fallback status
-        client.user.setPresence({
-          activities: [{ name: `💎 GrokCity • /start`, type: 3 }],
-          status: 'online'
-        });
+      const activity = await statuses[statusIndex]();
+      client.user.setPresence({
+        activities: [activity],
+        status: 'online'
       });
+      
+      statusIndex = (statusIndex + 1) % statuses.length;
+      
     } catch (err) {
       console.error('Erreur Rich Presence:', err.message);
+      // Fallback status simple
+      client.user.setPresence({
+        activities: [{ name: `💎 GrokCity • /start`, type: 3 }],
+        status: 'online'
+      });
     }
   }
   
   updatePresence();
-  setInterval(updatePresence, 3 * 60 * 1000); // Toutes les 3 minutes pour rotation
-  
-  // Nettoyage du cache toutes les 5 minutes
-  setInterval(() => {
-    userCache.clear();
-  }, 5 * 60 * 1000);
+  setInterval(updatePresence, 2 * 60 * 1000); // Rotation toutes les 2 minutes
 });
 
 client.on('interactionCreate', async interaction => {
@@ -157,7 +145,6 @@ client.on('interactionCreate', async interaction => {
     if (!command) return;
     
     try {
-      // Optimisation: utiliser le cache pour les données utilisateur fréquentes
       await command.execute(interaction, db, config);
     } catch (error) {
       console.error(`❌ Erreur commande ${interaction.commandName}:`, error.message);
@@ -165,7 +152,7 @@ client.on('interactionCreate', async interaction => {
       
       const errorMessage = {
         content: '❌ Une erreur est survenue lors de l\'exécution de la commande.',
-        ephemeral: true
+        flags: 64
       };
       
       try {

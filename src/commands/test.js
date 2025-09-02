@@ -9,7 +9,7 @@ export async function execute(interaction, db, config) {
   const uid = interaction.user.id;
   
   try {
-    // Test de base
+    // Test de base avec l'API libsql correcte
     const user = await db.getUser(uid);
     const totalUsersResult = await db.execute('SELECT COUNT(*) as count FROM users');
     const totalUsers = totalUsersResult.rows[0].count;
