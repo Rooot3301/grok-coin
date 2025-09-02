@@ -10,17 +10,18 @@ export async function execute(interaction, db, config) {
   
   try {
     // Test de base
-    const user = db.getUser(uid);
-    const totalUsers = db.prepare('SELECT COUNT(*) as count FROM users').get().count;
-    const totalCirculation = db.getTotalCirculation();
+    const user = await db.getUser(uid);
+    const totalUsersResult = await db.execute('SELECT COUNT(*) as count FROM users');
+    const totalUsers = totalUsersResult.rows[0].count;
+    const totalCirculation = await db.getTotalCirculation();
     
     // Test des propriétés
-    const properties = db.getAllProperties();
-    const userProperties = db.getUserProperties(uid);
+    const properties = await db.getAllProperties();
+    const userProperties = await db.getUserProperties(uid);
     
     // Test du logement
-    const housing = db.getUserHousing(uid);
-    const rentStatus = db.checkRentDue(uid);
+    const housing = await db.getUserHousing(uid);
+    const rentStatus = await db.checkRentDue(uid);
     
     const embed = new EmbedBuilder()
       .setTitle('🧪 Test du Bot - Résultats')
