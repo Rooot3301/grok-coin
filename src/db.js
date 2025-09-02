@@ -203,10 +203,18 @@ async function getUser(userId) {
       
       // Assign default housing (cardboard box)
       const defaultHousing = config.immo.default_housing;
-      await db.execute('INSERT INTO user_properties (user_id, property_id, purchased_at, last_rent) VALUES (?, ?, ?, ?)', [userId, defaultHousing.id, Date.now(), Date.now()]);
+      try {
+        await db.execute('INSERT INTO user_properties (user_id, property_id, purchased_at, last_rent) VALUES (?, ?, ?, ?)', [userId, defaultHousing.id, Date.now(), Date.now()]);
+      } catch (housingError) {
+        console.log('Info: Logement par défaut déjà assigné ou erreur:', housingError.message);
+      }
       
       const newResult = await db.execute('SELECT * FROM users WHERE id = ?', [userId]);
       user = newResult.rows[0];
+      
+      if (!user) {
+        throw new Error('Impossible de créer l\'utilisateur');
+      }
     }
 
     // Cache the user data
