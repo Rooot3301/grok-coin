@@ -31,11 +31,10 @@ export async function execute(interaction, db, config) {
       .setTitle('Économie : Statistiques')
       .setColor(0x455a64)
       .addFields(
-        { name: 'Inflation hebdomadaire', value: `${(config.economy.inflation_weekly_pct * 100).toFixed(2)} %`, inline: true },
+        { name: 'Inflation mensuelle', value: `${(config.economy.inflation_monthly_pct * 100).toFixed(2)} %`, inline: true },
         { name: 'Intérêt épargne journalier', value: `${(config.economy.bank_interest_daily_pct * 100).toFixed(2)} %`, inline: true },
         { name: 'Intérêt prêt journalier', value: `${(config.economy.loan_interest_daily_pct * 100).toFixed(2)} %`, inline: true },
-        { name: 'Spread du DEX', value: `${(config.crypto.dex_spread_pct * 100).toFixed(2)} %`, inline: true },
-        { name: 'Rendement minage net/jour', value: `${config.crypto.node_daily_yield - config.crypto.node_daily_cost} GKC`, inline: true },
+        { name: 'Frais de trading', value: `${(config.crypto.trading_fee_pct * 100).toFixed(2)} %`, inline: true },
         { name: 'Nombre de propriétés', value: `${config.immo.properties.length}`, inline: true }
       )
       .setFooter({ text: 'Ces statistiques sont à titre indicatif et peuvent évoluer via les événements.' });

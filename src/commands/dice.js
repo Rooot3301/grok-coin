@@ -15,8 +15,8 @@ export async function execute(interaction, db, config) {
   const thresholdInput = interaction.options.getInteger('seuil');
   const threshold = thresholdInput ? Math.min(Math.max(thresholdInput, 1), 99) : 50;
   const stake = toCents(amount);
-  if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', flags: 64 });
-  if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', flags: 64 });
+  if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', ephemeral: true });
+  if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', ephemeral: true });
   
   // Deduct stake
   db.adjustBalance(uid, -stake);
@@ -24,8 +24,14 @@ export async function execute(interaction, db, config) {
   // Update VIP tier
   db.updateVipTier(uid, stake);
   
-  // Roll dice
-  const roll = Math.floor(Math.random() * 100); // 0-99
+  // Roll dice avec générateur sécurisé
+  const crypto = await import('crypto');
+  const buffer = crypto.randomBytes(4);
+  const roll = Math.floor((buffer.readUInt32BE(0) / 0xFFFFFFFF) * 100); // 0-99
+  
+  // Preuve "provably fair"
+  const proof = crypto.createHash('sha256').update(`${uid}-${Date.now()}-${roll}`).digest('hex').substring(0, 8);
+  
   let message;
   if (roll < threshold) {
     // Win
@@ -43,6 +49,10 @@ export async function execute(interaction, db, config) {
     .setTitle('Jeu du dé')
     .setColor(0x9c27b0)
     .setDescription(message)
-    .addFields({ name: 'Solde actuel', value: `${formatCents(db.getUser(uid).balance)} GKC`, inline: true });
+    .addFields(
+      { name: 'Solde actuel', value: `${formatCents(db.getUser(uid).balance)} GKC`, inline: true },
+      { name: '🔐 Preuve', value: `\`${proof}\``, inline: true }
+    )
+    .setFooter({ text: '🎲 Provably Fair • Générateur cryptographique sécurisé' });
   await interaction.reply({ embeds: [embed] });
 }

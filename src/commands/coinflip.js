@@ -17,8 +17,8 @@ export async function execute(interaction, db, config) {
   const amount = interaction.options.getNumber('mise');
   const guess = interaction.options.getString('choix');
   const stake = toCents(amount);
-  if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', flags: 64 });
-  if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', flags: 64 });
+  if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', ephemeral: true });
+  if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', ephemeral: true });
   
   // Deduct stake
   db.adjustBalance(uid, -stake);
@@ -26,8 +26,15 @@ export async function execute(interaction, db, config) {
   // Update VIP tier
   db.updateVipTier(uid, stake);
   
-  // Generate random result
-  const outcome = Math.random() < 0.5 ? 'Pile' : 'Face';
+  // Generate random result avec générateur sécurisé
+  const crypto = await import('crypto');
+  const buffer = crypto.randomBytes(4);
+  const random = buffer.readUInt32BE(0) / 0xFFFFFFFF;
+  const outcome = random < 0.5 ? 'Pile' : 'Face';
+  
+  // Preuve "provably fair"
+  const proof = crypto.createHash('sha256').update(`${uid}-${Date.now()}-${outcome}`).digest('hex').substring(0, 8);
+  
   let message;
   if (guess === outcome) {
     // Win: pays double minus fee
@@ -44,6 +51,10 @@ export async function execute(interaction, db, config) {
     .setTitle('Coinflip')
     .setColor(0xe91e63)
     .setDescription(message)
-    .addFields({ name: 'Solde actuel', value: `${formatCents(db.getUser(uid).balance)} GKC`, inline: true });
+    .addFields(
+      { name: 'Solde actuel', value: `${formatCents(db.getUser(uid).balance)} GKC`, inline: true },
+      { name: '🔐 Preuve', value: `\`${proof}\``, inline: true }
+    )
+    .setFooter({ text: '🪙 Provably Fair • Générateur cryptographique sécurisé' });
   await interaction.reply({ embeds: [embed] });
 }

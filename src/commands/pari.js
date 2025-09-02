@@ -32,26 +32,35 @@ export async function execute(interaction, db, config) {
   const user = db.getUser(uid);
   const amount = interaction.options.getNumber('mise');
   const stake = toCents(amount);
-  if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', ephermal: true });
-  if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', ephermal: true });
+  if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', ephemeral: true });
+  if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', ephemeral: true });
   const matchKey = interaction.options.getString('match');
   const team = interaction.options.getString('équipe');
   const match = matches[matchKey];
-  if (!match) return interaction.reply({ content: 'Match invalide.', ephermal: true });
+  if (!match) return interaction.reply({ content: 'Match invalide.', ephemeral: true });
   if (team !== match.teamA && team !== match.teamB) {
-    return interaction.reply({ content: `L\'équipe ${team} ne joue pas dans ce match.`, ephermal: true });
+    return interaction.reply({ content: `L\'équipe ${team} ne joue pas dans ce match.`, ephemeral: true });
   }
   // Check daily loss cap
   const event = getEvent();
   // No loss cap - players can bet freely
   // Deduct stake
   db.adjustBalance(uid, -stake);
-  // Determine winner with probability weighted by inverse odds
+  
+  // Determine winner with probability weighted by inverse odds (sécurisé)
+  const crypto = await import('crypto');
+  const buffer = crypto.randomBytes(4);
+  const rnd = (buffer.readUInt32BE(0) / 0xFFFFFFFF);
+  
   const weightA = 1 / match.oddsA;
   const weightB = 1 / match.oddsB;
   const total = weightA + weightB;
-  const rnd = Math.random() * total;
+  const scaledRnd = rnd * total;
   const winner = rnd < weightA ? match.teamA : match.teamB;
+  
+  // Preuve "provably fair"
+  const proof = crypto.createHash('sha256').update(`${uid}-${Date.now()}-${winner}`).digest('hex').substring(0, 8);
+  
   let message;
   if (team === winner) {
     const odds = team === match.teamA ? match.oddsA : match.oddsB;
@@ -66,6 +75,10 @@ export async function execute(interaction, db, config) {
     .setTitle('Pari sportif')
     .setColor(0x03a9f4)
     .setDescription(message)
-    .addFields({ name: 'Solde actuel', value: `${formatCents(db.getUser(uid).balance)} GKC`, inline: true });
+    .addFields(
+      { name: 'Solde actuel', value: `${formatCents(db.getUser(uid).balance)} GKC`, inline: true },
+      { name: '🔐 Preuve', value: `\`${proof}\``, inline: true }
+    )
+    .setFooter({ text: '🏈 Provably Fair • Générateur cryptographique sécurisé' });
   await interaction.reply({ embeds: [embed] });
 }

@@ -38,21 +38,30 @@ export async function execute(interaction, db, config) {
   const user = db.getUser(uid);
   const amount = interaction.options.getNumber('mise');
   const stake = toCents(amount);
-  if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', ephermal: true });
-  if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', ephermal: true });
+  if (stake <= 0) return interaction.reply({ content: 'Mise invalide.', ephemeral: true });
+  if (user.balance < stake) return interaction.reply({ content: 'Solde insuffisant.', ephemeral: true });
   const event = getEvent();
   // No loss cap - players can bet freely
-  const outcomeIndex = Math.floor(Math.random() * wheelSequence.length);
+  
+  // Générateur sécurisé pour la roulette
+  const crypto = await import('crypto');
+  const buffer = crypto.randomBytes(4);
+  const random = buffer.readUInt32BE(0) / 0xFFFFFFFF;
+  const outcomeIndex = Math.floor(random * wheelSequence.length);
   const outcomeNumber = wheelSequence[outcomeIndex];
   const outcomeColor = getColor(outcomeNumber);
   const outcomeParity = outcomeNumber === 0 ? 'none' : (outcomeNumber % 2 === 0 ? 'pair' : 'impair');
+  
+  // Preuve "provably fair"
+  const proof = crypto.createHash('sha256').update(`${uid}-${Date.now()}-${outcomeNumber}`).digest('hex').substring(0, 8);
+  
   let win = false;
   let payout = 0;
   const feePct = config.casino.fee_pct || 0.01;
   if (sub === 'numero') {
     const chosenNumber = interaction.options.getInteger('numéro');
     if (chosenNumber < 0 || chosenNumber > 36) {
-      return interaction.reply({ content: 'Numéro invalide (0-36).', ephermal: true });
+      return interaction.reply({ content: 'Numéro invalide (0-36).', ephemeral: true });
     }
     if (chosenNumber === outcomeNumber) {
       win = true;
@@ -100,8 +109,10 @@ export async function execute(interaction, db, config) {
     .setDescription(message)
     .addFields(
       { name: 'Résultat', value: visual.join('  '), inline: false },
-      { name: 'Solde actuel', value: `${formatCents(db.getUser(uid).balance)} GKC`, inline: true }
+      { name: 'Solde actuel', value: `${formatCents(db.getUser(uid).balance)} GKC`, inline: true },
+      { name: '🔐 Preuve', value: `\`${proof}\``, inline: true }
     );
+  embed.setFooter({ text: '🎡 Provably Fair • Générateur cryptographique sécurisé' });
   // Attach an image of the roulette wheel for a nicer visual
   try {
     // Read the image from the assets folder

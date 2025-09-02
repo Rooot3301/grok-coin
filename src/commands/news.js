@@ -23,7 +23,7 @@ export async function execute(interaction, db, config) {
   if (sub === 'voir') {
     const newsItems = db.getActiveNews();
     if (!newsItems || newsItems.length === 0) {
-      return interaction.reply({ content: 'Aucune actualité en cours.', ephermal: true });
+      return interaction.reply({ content: 'Aucune actualité en cours.', ephemeral: true });
     }
     const embed = new EmbedBuilder()
       .setTitle('📰 Actualités de CopaingCity')
@@ -53,11 +53,11 @@ export async function execute(interaction, db, config) {
       try {
         effet = JSON.parse(effetStr);
       } catch (err) {
-        return interaction.reply({ content: 'Le champ effet doit être un JSON valide.', ephermal: true });
+        return interaction.reply({ content: 'Le champ effet doit être un JSON valide.', ephemeral: true });
       }
     }
     db.addNews(texte, effet, duree);
     return interaction.reply({ content: '✅ Actualité ajoutée avec succès !', allowedMentions: { repliedUser: false } });
   }
-  return interaction.reply({ content: 'Sous‑commande inconnue.', ephermal: true });
+  return interaction.reply({ content: 'Sous‑commande inconnue.', ephemeral: true });
 }
