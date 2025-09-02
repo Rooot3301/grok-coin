@@ -1,6 +1,5 @@
 import { createClient } from '@libsql/client';
 import fs from 'fs';
-import path from 'path';
 
 // Load configuration
 const configPath = new URL('./config.json', import.meta.url);
@@ -27,200 +26,221 @@ function clearExpiredCache() {
 // Clear cache every 5 minutes
 setInterval(clearExpiredCache, 5 * 60 * 1000);
 
-// Initialise tables
+// Initialize tables
 async function init() {
-  await db.execute(`CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    alias TEXT,
-    job TEXT,
-    balance INTEGER NOT NULL,
-    bank_balance INTEGER NOT NULL,
-    last_shift INTEGER DEFAULT 0,
-    shifts_count INTEGER DEFAULT 0,
-    reputation INTEGER DEFAULT 0,
-    criminal_record INTEGER DEFAULT 0,
-    last_interest INTEGER DEFAULT 0,
-    daily_loss INTEGER DEFAULT 0,
-    loss_day INTEGER DEFAULT 0,
-    stable_balance INTEGER NOT NULL DEFAULT 0,
-    staking_balance INTEGER NOT NULL DEFAULT 0,
-    staking_last INTEGER NOT NULL DEFAULT 0,
-    nodes INTEGER NOT NULL DEFAULT 0,
-    last_node INTEGER NOT NULL DEFAULT 0,
-    crypto_balance INTEGER NOT NULL DEFAULT 0,
-    crypto_staking INTEGER NOT NULL DEFAULT 0,
-    staking_last_claim INTEGER NOT NULL DEFAULT 0,
-    vip_tier TEXT DEFAULT NULL,
-    total_wagered INTEGER NOT NULL DEFAULT 0,
-    guild_id INTEGER DEFAULT NULL
-  )`);
+  try {
+    await db.execute(`CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      alias TEXT,
+      job TEXT,
+      balance INTEGER NOT NULL DEFAULT 100000,
+      bank_balance INTEGER NOT NULL DEFAULT 0,
+      last_shift INTEGER DEFAULT 0,
+      shifts_count INTEGER DEFAULT 0,
+      reputation INTEGER DEFAULT 0,
+      criminal_record INTEGER DEFAULT 0,
+      last_interest INTEGER DEFAULT 0,
+      daily_loss INTEGER DEFAULT 0,
+      loss_day INTEGER DEFAULT 0,
+      stable_balance INTEGER NOT NULL DEFAULT 0,
+      staking_balance INTEGER NOT NULL DEFAULT 0,
+      staking_last INTEGER NOT NULL DEFAULT 0,
+      nodes INTEGER NOT NULL DEFAULT 0,
+      last_node INTEGER NOT NULL DEFAULT 0,
+      crypto_balance INTEGER NOT NULL DEFAULT 0,
+      crypto_staking INTEGER NOT NULL DEFAULT 0,
+      staking_last_claim INTEGER NOT NULL DEFAULT 0,
+      vip_tier TEXT DEFAULT NULL,
+      total_wagered INTEGER NOT NULL DEFAULT 0,
+      guild_id INTEGER DEFAULT NULL
+    )`);
 
-  await db.execute(`CREATE TABLE IF NOT EXISTS loans (
-    user_id TEXT PRIMARY KEY,
-    principal INTEGER NOT NULL,
-    interest INTEGER NOT NULL DEFAULT 0,
-    last_update INTEGER NOT NULL,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  )`);
+    await db.execute(`CREATE TABLE IF NOT EXISTS loans (
+      user_id TEXT PRIMARY KEY,
+      principal INTEGER NOT NULL,
+      interest INTEGER NOT NULL DEFAULT 0,
+      last_update INTEGER NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`);
 
-  await db.execute(`CREATE TABLE IF NOT EXISTS properties (
-    id TEXT PRIMARY KEY,
-    name TEXT NOT NULL,
-    price INTEGER NOT NULL,
-    rent INTEGER NOT NULL
-  )`);
+    await db.execute(`CREATE TABLE IF NOT EXISTS properties (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      price INTEGER NOT NULL,
+      rent INTEGER NOT NULL
+    )`);
 
-  await db.execute(`CREATE TABLE IF NOT EXISTS user_properties (
-    user_id TEXT NOT NULL,
-    property_id TEXT NOT NULL,
-    purchased_at INTEGER NOT NULL,
-    last_rent INTEGER NOT NULL,
-    PRIMARY KEY (user_id, property_id),
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
-  )`);
+    await db.execute(`CREATE TABLE IF NOT EXISTS user_properties (
+      user_id TEXT NOT NULL,
+      property_id TEXT NOT NULL,
+      purchased_at INTEGER NOT NULL,
+      last_rent INTEGER NOT NULL,
+      PRIMARY KEY (user_id, property_id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+    )`);
 
-  await db.execute(`CREATE TABLE IF NOT EXISTS settings (
-    key TEXT PRIMARY KEY,
-    value TEXT
-  )`);
+    await db.execute(`CREATE TABLE IF NOT EXISTS settings (
+      key TEXT PRIMARY KEY,
+      value TEXT
+    )`);
 
-  await db.execute(`CREATE TABLE IF NOT EXISTS news (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    text TEXT NOT NULL,
-    effect TEXT,
-    created_at INTEGER NOT NULL,
-    expires_at INTEGER
-  )`);
+    await db.execute(`CREATE TABLE IF NOT EXISTS news (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      text TEXT NOT NULL,
+      effect TEXT,
+      created_at INTEGER NOT NULL,
+      expires_at INTEGER
+    )`);
 
-  await db.execute(`CREATE TABLE IF NOT EXISTS guilds (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE NOT NULL,
-    description TEXT NOT NULL,
-    leader_id TEXT NOT NULL,
-    treasury INTEGER NOT NULL DEFAULT 0,
-    level INTEGER NOT NULL DEFAULT 1,
-    experience INTEGER NOT NULL DEFAULT 0,
-    status TEXT NOT NULL DEFAULT 'open',
-    created_at INTEGER NOT NULL,
-    FOREIGN KEY (leader_id) REFERENCES users(id)
-  )`);
+    await db.execute(`CREATE TABLE IF NOT EXISTS guilds (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT UNIQUE NOT NULL,
+      description TEXT NOT NULL,
+      leader_id TEXT NOT NULL,
+      treasury INTEGER NOT NULL DEFAULT 0,
+      level INTEGER NOT NULL DEFAULT 1,
+      experience INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'open',
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (leader_id) REFERENCES users(id)
+    )`);
 
-  await db.execute(`CREATE TABLE IF NOT EXISTS guild_members (
-    guild_id INTEGER NOT NULL,
-    user_id TEXT NOT NULL,
-    rank TEXT NOT NULL DEFAULT 'member',
-    joined_at INTEGER NOT NULL,
-    contribution INTEGER NOT NULL DEFAULT 0,
-    PRIMARY KEY (guild_id, user_id),
-    FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  )`);
+    await db.execute(`CREATE TABLE IF NOT EXISTS guild_members (
+      guild_id INTEGER NOT NULL,
+      user_id TEXT NOT NULL,
+      rank TEXT NOT NULL DEFAULT 'member',
+      joined_at INTEGER NOT NULL,
+      contribution INTEGER NOT NULL DEFAULT 0,
+      PRIMARY KEY (guild_id, user_id),
+      FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`);
 
-  await db.execute(`CREATE TABLE IF NOT EXISTS guild_wars (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    attacker_id INTEGER NOT NULL,
-    defender_id INTEGER NOT NULL,
-    status TEXT NOT NULL DEFAULT 'active',
-    started_at INTEGER NOT NULL,
-    ends_at INTEGER,
-    FOREIGN KEY (attacker_id) REFERENCES guilds(id) ON DELETE CASCADE,
-    FOREIGN KEY (defender_id) REFERENCES guilds(id) ON DELETE CASCADE
-  )`);
+    await db.execute(`CREATE TABLE IF NOT EXISTS guild_wars (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      attacker_id INTEGER NOT NULL,
+      defender_id INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'active',
+      started_at INTEGER NOT NULL,
+      ends_at INTEGER,
+      FOREIGN KEY (attacker_id) REFERENCES guilds(id) ON DELETE CASCADE,
+      FOREIGN KEY (defender_id) REFERENCES guilds(id) ON DELETE CASCADE
+    )`);
 
-  await db.execute(`CREATE TABLE IF NOT EXISTS guild_alliances (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    guild1_id INTEGER NOT NULL,
-    guild2_id INTEGER NOT NULL,
-    status TEXT NOT NULL DEFAULT 'pending',
-    created_at INTEGER NOT NULL,
-    FOREIGN KEY (guild1_id) REFERENCES guilds(id) ON DELETE CASCADE,
-    FOREIGN KEY (guild2_id) REFERENCES guilds(id) ON DELETE CASCADE
-  )`);
+    await db.execute(`CREATE TABLE IF NOT EXISTS guild_alliances (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild1_id INTEGER NOT NULL,
+      guild2_id INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at INTEGER NOT NULL,
+      FOREIGN KEY (guild1_id) REFERENCES guilds(id) ON DELETE CASCADE,
+      FOREIGN KEY (guild2_id) REFERENCES guilds(id) ON DELETE CASCADE
+    )`);
 
-  await db.execute(`CREATE TABLE IF NOT EXISTS guild_contributions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    guild_id INTEGER NOT NULL,
-    user_id TEXT NOT NULL,
-    amount INTEGER NOT NULL,
-    timestamp INTEGER NOT NULL,
-    FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-  )`);
+    await db.execute(`CREATE TABLE IF NOT EXISTS guild_contributions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id INTEGER NOT NULL,
+      user_id TEXT NOT NULL,
+      amount INTEGER NOT NULL,
+      timestamp INTEGER NOT NULL,
+      FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`);
 
-  await db.execute(`CREATE TABLE IF NOT EXISTS guild_attacks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    attacker_guild_id INTEGER NOT NULL,
-    target_guild_id INTEGER NOT NULL,
-    attack_type TEXT NOT NULL,
-    success BOOLEAN NOT NULL,
-    timestamp INTEGER NOT NULL,
-    FOREIGN KEY (attacker_guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
-    FOREIGN KEY (target_guild_id) REFERENCES guilds(id) ON DELETE CASCADE
-  )`);
+    await db.execute(`CREATE TABLE IF NOT EXISTS guild_attacks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      attacker_guild_id INTEGER NOT NULL,
+      target_guild_id INTEGER NOT NULL,
+      attack_type TEXT NOT NULL,
+      success BOOLEAN NOT NULL,
+      timestamp INTEGER NOT NULL,
+      FOREIGN KEY (attacker_guild_id) REFERENCES guilds(id) ON DELETE CASCADE,
+      FOREIGN KEY (target_guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+    )`);
 
-  await db.execute(`CREATE TABLE IF NOT EXISTS guild_defenses (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    guild_id INTEGER NOT NULL,
-    defense_type TEXT NOT NULL,
-    expires_at INTEGER NOT NULL,
-    FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
-  )`);
+    await db.execute(`CREATE TABLE IF NOT EXISTS guild_defenses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      guild_id INTEGER NOT NULL,
+      defense_type TEXT NOT NULL,
+      expires_at INTEGER NOT NULL,
+      FOREIGN KEY (guild_id) REFERENCES guilds(id) ON DELETE CASCADE
+    )`);
 
-  // Insert default properties if not present
-  const existing = await db.execute('SELECT COUNT(*) AS count FROM properties');
-  if (existing.rows[0].count === 0) {
-    for (const prop of config.immo.properties) {
-      await db.execute('INSERT INTO properties (id, name, price, rent) VALUES (?, ?, ?, ?)', [prop.id, prop.name, prop.price, prop.rent]);
+    // Insert default properties if not present
+    const existing = await db.execute('SELECT COUNT(*) AS count FROM properties');
+    if (existing.rows[0].count === 0) {
+      for (const prop of config.immo.properties) {
+        await db.execute('INSERT INTO properties (id, name, price, rent) VALUES (?, ?, ?, ?)', [prop.id, prop.name, prop.price, prop.rent]);
+      }
     }
+
+    console.log('✅ Base de données initialisée');
+  } catch (error) {
+    console.error('❌ Erreur initialisation DB:', error);
+    throw error;
   }
 }
 
 // Create or get user row with caching
 async function getUser(userId) {
+  if (!userId) throw new Error('userId is required');
+  
   // Check cache first
   const cached = userCache.get(userId);
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     return cached.data;
   }
 
-  const result = await db.execute('SELECT * FROM users WHERE id = ?', [userId]);
-  let user = result.rows[0];
-  
-  if (!user) {
-    // Create new user with default values
-    const startingBalance = config.economy.starting_balance || 0;
-    await db.execute('INSERT INTO users (id, balance, bank_balance) VALUES (?, ?, ?)', [userId, startingBalance * 100, 0]);
+  try {
+    const result = await db.execute('SELECT * FROM users WHERE id = ?', [userId]);
+    let user = result.rows[0];
     
-    // Assign default housing (cardboard box)
-    const defaultHousing = config.immo.default_housing;
-    await db.execute('INSERT INTO user_properties (user_id, property_id, purchased_at, last_rent) VALUES (?, ?, ?, ?)', [userId, defaultHousing.id, Date.now(), Date.now()]);
-    
-    const newResult = await db.execute('SELECT * FROM users WHERE id = ?', [userId]);
-    user = newResult.rows[0];
+    if (!user) {
+      // Create new user with default values
+      const startingBalance = (config.economy.starting_balance || 1000) * 100;
+      await db.execute('INSERT INTO users (id, balance, bank_balance) VALUES (?, ?, ?)', [userId, startingBalance, 0]);
+      
+      // Assign default housing (cardboard box)
+      const defaultHousing = config.immo.default_housing;
+      await db.execute('INSERT INTO user_properties (user_id, property_id, purchased_at, last_rent) VALUES (?, ?, ?, ?)', [userId, defaultHousing.id, Date.now(), Date.now()]);
+      
+      const newResult = await db.execute('SELECT * FROM users WHERE id = ?', [userId]);
+      user = newResult.rows[0];
+    }
+
+    // Cache the user data
+    userCache.set(userId, {
+      data: user,
+      timestamp: Date.now()
+    });
+
+    return user;
+  } catch (error) {
+    console.error('Erreur getUser:', error);
+    throw error;
   }
-
-  // Cache the user data
-  userCache.set(userId, {
-    data: user,
-    timestamp: Date.now()
-  });
-
-  return user;
 }
 
 async function updateUser(userId, fields) {
+  if (!userId || !fields) return;
+  
   const keys = Object.keys(fields);
   if (keys.length === 0) return;
   
-  const assignments = keys.map(k => `${k} = ?`).join(', ');
-  const values = keys.map(k => fields[k]);
-  values.push(userId);
-  
-  await db.execute(`UPDATE users SET ${assignments} WHERE id = ?`, values);
-  
-  // Invalidate cache
-  userCache.delete(userId);
+  try {
+    const assignments = keys.map(k => `${k} = ?`).join(', ');
+    const values = keys.map(k => fields[k]);
+    values.push(userId);
+    
+    await db.execute(`UPDATE users SET ${assignments} WHERE id = ?`, values);
+    
+    // Invalidate cache
+    userCache.delete(userId);
+  } catch (error) {
+    console.error('Erreur updateUser:', error);
+    throw error;
+  }
 }
 
 async function adjustBalance(userId, delta) {
@@ -389,8 +409,13 @@ async function resetDailyShifts(userId) {
 
 // Loan functions
 async function getLoan(userId) {
-  const result = await db.execute('SELECT * FROM loans WHERE user_id = ?', [userId]);
-  return result.rows[0];
+  try {
+    const result = await db.execute('SELECT * FROM loans WHERE user_id = ?', [userId]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Erreur getLoan:', error);
+    return null;
+  }
 }
 
 async function createLoan(userId, principal, dailyRate) {
@@ -445,13 +470,23 @@ async function repayLoan(userId, amountCents) {
 
 // Property functions
 async function getAllProperties() {
-  const result = await db.execute('SELECT * FROM properties');
-  return result.rows;
+  try {
+    const result = await db.execute('SELECT * FROM properties');
+    return result.rows || [];
+  } catch (error) {
+    console.error('Erreur getAllProperties:', error);
+    return [];
+  }
 }
 
 async function getUserProperties(userId) {
-  const result = await db.execute('SELECT p.* FROM user_properties up JOIN properties p ON up.property_id = p.id WHERE up.user_id = ?', [userId]);
-  return result.rows;
+  try {
+    const result = await db.execute('SELECT p.* FROM user_properties up JOIN properties p ON up.property_id = p.id WHERE up.user_id = ?', [userId]);
+    return result.rows || [];
+  } catch (error) {
+    console.error('Erreur getUserProperties:', error);
+    return [];
+  }
 }
 
 async function addPropertyToUser(userId, propId) {
@@ -463,15 +498,20 @@ async function addPropertyToUser(userId, propId) {
 
 // Housing functions
 async function getUserHousing(userId) {
-  const result = await db.execute(`
-    SELECT p.*, up.last_rent 
-    FROM user_properties up 
-    JOIN properties p ON up.property_id = p.id 
-    WHERE up.user_id = ? AND p.rent > 0
-    ORDER BY p.rent ASC
-    LIMIT 1
-  `, [userId]);
-  return result.rows[0];
+  try {
+    const result = await db.execute(`
+      SELECT p.*, up.last_rent 
+      FROM user_properties up 
+      JOIN properties p ON up.property_id = p.id 
+      WHERE up.user_id = ? AND p.rent > 0
+      ORDER BY p.rent ASC
+      LIMIT 1
+    `, [userId]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Erreur getUserHousing:', error);
+    return null;
+  }
 }
 
 async function payRent(userId) {
@@ -511,13 +551,18 @@ async function setSetting(key, value) {
 }
 
 async function getSetting(key) {
-  const result = await db.execute('SELECT value FROM settings WHERE key = ?', [key]);
-  if (result.rows.length === 0) return null;
-  
   try {
-    return JSON.parse(result.rows[0].value);
-  } catch {
-    return result.rows[0].value;
+    const result = await db.execute('SELECT value FROM settings WHERE key = ?', [key]);
+    if (result.rows.length === 0) return null;
+    
+    try {
+      return JSON.parse(result.rows[0].value);
+    } catch {
+      return result.rows[0].value;
+    }
+  } catch (error) {
+    console.error('Erreur getSetting:', error);
+    return null;
   }
 }
 
@@ -532,24 +577,34 @@ async function addNews(text, effect = null, durationHours = null) {
 }
 
 async function getActiveNews() {
-  const now = Date.now();
-  const result = await db.execute('SELECT id, text, effect, created_at, expires_at FROM news WHERE expires_at IS NULL OR expires_at > ? ORDER BY created_at DESC', [now]);
-  
-  return result.rows.map(n => ({
-    id: n.id,
-    text: n.text,
-    effect: n.effect ? JSON.parse(n.effect) : null,
-    createdAt: n.created_at,
-    expiresAt: n.expires_at
-  }));
+  try {
+    const now = Date.now();
+    const result = await db.execute('SELECT id, text, effect, created_at, expires_at FROM news WHERE expires_at IS NULL OR expires_at > ? ORDER BY created_at DESC', [now]);
+    
+    return result.rows.map(n => ({
+      id: n.id,
+      text: n.text,
+      effect: n.effect ? JSON.parse(n.effect) : null,
+      createdAt: n.created_at,
+      expiresAt: n.expires_at
+    }));
+  } catch (error) {
+    console.error('Erreur getActiveNews:', error);
+    return [];
+  }
 }
 
 // Calculate total GKC in circulation
 async function getTotalCirculation() {
-  const result = await db.execute('SELECT SUM(balance) AS bal, SUM(bank_balance) AS bank FROM users');
-  const row = result.rows[0];
-  const total = (row?.bal || 0) + (row?.bank || 0);
-  return total;
+  try {
+    const result = await db.execute('SELECT SUM(balance) AS bal, SUM(bank_balance) AS bank FROM users');
+    const row = result.rows[0];
+    const total = (row?.bal || 0) + (row?.bank || 0);
+    return total;
+  } catch (error) {
+    console.error('Erreur getTotalCirculation:', error);
+    return 0;
+  }
 }
 
 // Guild functions
@@ -564,23 +619,38 @@ async function createGuild(name, description, leaderId) {
 }
 
 async function getGuildByName(name) {
-  const result = await db.execute('SELECT * FROM guilds WHERE name = ?', [name]);
-  return result.rows[0];
+  try {
+    const result = await db.execute('SELECT * FROM guilds WHERE name = ?', [name]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Erreur getGuildByName:', error);
+    return null;
+  }
 }
 
 async function getUserGuild(userId) {
-  const result = await db.execute(`
-    SELECT g.*, gm.rank, gm.joined_at, gm.contribution 
-    FROM guilds g 
-    JOIN guild_members gm ON g.id = gm.guild_id 
-    WHERE gm.user_id = ?
-  `, [userId]);
-  return result.rows[0];
+  try {
+    const result = await db.execute(`
+      SELECT g.*, gm.rank, gm.joined_at, gm.contribution 
+      FROM guilds g 
+      JOIN guild_members gm ON g.id = gm.guild_id 
+      WHERE gm.user_id = ?
+    `, [userId]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Erreur getUserGuild:', error);
+    return null;
+  }
 }
 
 async function getAllGuilds() {
-  const result = await db.execute('SELECT * FROM guilds ORDER BY level DESC, experience DESC');
-  return result.rows;
+  try {
+    const result = await db.execute('SELECT * FROM guilds ORDER BY level DESC, experience DESC');
+    return result.rows || [];
+  } catch (error) {
+    console.error('Erreur getAllGuilds:', error);
+    return [];
+  }
 }
 
 async function joinGuild(userId, guildId) {
@@ -595,60 +665,96 @@ async function leaveGuild(userId) {
 }
 
 async function getGuildMembers(guildId) {
-  const result = await db.execute('SELECT * FROM guild_members WHERE guild_id = ? ORDER BY rank DESC, joined_at ASC', [guildId]);
-  return result.rows;
+  try {
+    if (!guildId) return [];
+    const result = await db.execute('SELECT * FROM guild_members WHERE guild_id = ? ORDER BY rank DESC, joined_at ASC', [guildId]);
+    return result.rows || [];
+  } catch (error) {
+    console.error('Erreur getGuildMembers:', error);
+    return [];
+  }
 }
 
 async function getGuildMember(guildId, userId) {
-  const result = await db.execute('SELECT * FROM guild_members WHERE guild_id = ? AND user_id = ?', [guildId, userId]);
-  return result.rows[0];
+  try {
+    const result = await db.execute('SELECT * FROM guild_members WHERE guild_id = ? AND user_id = ?', [guildId, userId]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Erreur getGuildMember:', error);
+    return null;
+  }
 }
 
 async function adjustGuildTreasury(guildId, delta) {
-  const result = await db.execute('SELECT treasury FROM guilds WHERE id = ?', [guildId]);
-  const guild = result.rows[0];
-  const newTreasury = Math.max(0, guild.treasury + delta);
-  await db.execute('UPDATE guilds SET treasury = ? WHERE id = ?', [newTreasury, guildId]);
-  return newTreasury;
+  try {
+    const result = await db.execute('SELECT treasury FROM guilds WHERE id = ?', [guildId]);
+    const guild = result.rows[0];
+    if (!guild) return 0;
+    
+    const newTreasury = Math.max(0, guild.treasury + delta);
+    await db.execute('UPDATE guilds SET treasury = ? WHERE id = ?', [newTreasury, guildId]);
+    return newTreasury;
+  } catch (error) {
+    console.error('Erreur adjustGuildTreasury:', error);
+    return 0;
+  }
 }
 
 async function addGuildExperience(guildId, exp) {
-  const result = await db.execute('SELECT level, experience FROM guilds WHERE id = ?', [guildId]);
-  const guild = result.rows[0];
-  let newExp = guild.experience + exp;
-  let newLevel = guild.level;
-  
-  const expNeeded = newLevel * 1000;
-  if (newExp >= expNeeded) {
-    newLevel++;
-    newExp -= expNeeded;
+  try {
+    const result = await db.execute('SELECT level, experience FROM guilds WHERE id = ?', [guildId]);
+    const guild = result.rows[0];
+    if (!guild) return;
+    
+    let newExp = guild.experience + exp;
+    let newLevel = guild.level;
+    
+    const expNeeded = newLevel * 1000;
+    if (newExp >= expNeeded) {
+      newLevel++;
+      newExp -= expNeeded;
+    }
+    
+    await db.execute('UPDATE guilds SET level = ?, experience = ? WHERE id = ?', [newLevel, newExp, guildId]);
+  } catch (error) {
+    console.error('Erreur addGuildExperience:', error);
   }
-  
-  await db.execute('UPDATE guilds SET level = ?, experience = ? WHERE id = ?', [newLevel, newExp, guildId]);
 }
 
 async function getGuildWars(guildId) {
-  const result = await db.execute(`
-    SELECT gw.*, 
-           CASE WHEN gw.attacker_id = ? THEN g2.name ELSE g1.name END as target_name
-    FROM guild_wars gw
-    JOIN guilds g1 ON gw.attacker_id = g1.id
-    JOIN guilds g2 ON gw.defender_id = g2.id
-    WHERE (gw.attacker_id = ? OR gw.defender_id = ?) AND gw.status = 'active'
-  `, [guildId, guildId, guildId]);
-  return result.rows;
+  try {
+    if (!guildId) return [];
+    const result = await db.execute(`
+      SELECT gw.*, 
+             CASE WHEN gw.attacker_id = ? THEN g2.name ELSE g1.name END as target_name
+      FROM guild_wars gw
+      JOIN guilds g1 ON gw.attacker_id = g1.id
+      JOIN guilds g2 ON gw.defender_id = g2.id
+      WHERE (gw.attacker_id = ? OR gw.defender_id = ?) AND gw.status = 'active'
+    `, [guildId, guildId, guildId]);
+    return result.rows || [];
+  } catch (error) {
+    console.error('Erreur getGuildWars:', error);
+    return [];
+  }
 }
 
 async function getGuildAlliances(guildId) {
-  const result = await db.execute(`
-    SELECT ga.*, 
-           CASE WHEN ga.guild1_id = ? THEN g2.name ELSE g1.name END as ally_name
-    FROM guild_alliances ga
-    JOIN guilds g1 ON ga.guild1_id = g1.id
-    JOIN guilds g2 ON ga.guild2_id = g2.id
-    WHERE (ga.guild1_id = ? OR ga.guild2_id = ?) AND ga.status = 'active'
-  `, [guildId, guildId, guildId]);
-  return result.rows;
+  try {
+    if (!guildId) return [];
+    const result = await db.execute(`
+      SELECT ga.*, 
+             CASE WHEN ga.guild1_id = ? THEN g2.name ELSE g1.name END as ally_name
+      FROM guild_alliances ga
+      JOIN guilds g1 ON ga.guild1_id = g1.id
+      JOIN guilds g2 ON ga.guild2_id = g2.id
+      WHERE (ga.guild1_id = ? OR ga.guild2_id = ?) AND ga.status = 'active'
+    `, [guildId, guildId, guildId]);
+    return result.rows || [];
+  } catch (error) {
+    console.error('Erreur getGuildAlliances:', error);
+    return [];
+  }
 }
 
 async function declareWar(attackerGuildId, defenderGuildId) {
@@ -658,12 +764,17 @@ async function declareWar(attackerGuildId, defenderGuildId) {
 }
 
 async function getWarBetweenGuilds(guild1Id, guild2Id) {
-  const result = await db.execute(`
-    SELECT * FROM guild_wars 
-    WHERE ((attacker_id = ? AND defender_id = ?) OR (attacker_id = ? AND defender_id = ?)) 
-    AND status = 'active' AND ends_at > ?
-  `, [guild1Id, guild2Id, guild2Id, guild1Id, Date.now()]);
-  return result.rows[0];
+  try {
+    const result = await db.execute(`
+      SELECT * FROM guild_wars 
+      WHERE ((attacker_id = ? AND defender_id = ?) OR (attacker_id = ? AND defender_id = ?)) 
+      AND status = 'active' AND ends_at > ?
+    `, [guild1Id, guild2Id, guild2Id, guild1Id, Date.now()]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Erreur getWarBetweenGuilds:', error);
+    return null;
+  }
 }
 
 async function recordGuildAttack(attackerGuildId, targetGuildId, attackType, success) {
@@ -672,9 +783,14 @@ async function recordGuildAttack(attackerGuildId, targetGuildId, attackType, suc
 }
 
 async function getGuildRecentAttacks(guildId, hours = 24) {
-  const since = Date.now() - (hours * 60 * 60 * 1000);
-  const result = await db.execute('SELECT * FROM guild_attacks WHERE (attacker_guild_id = ? OR target_guild_id = ?) AND timestamp > ?', [guildId, guildId, since]);
-  return result.rows;
+  try {
+    const since = Date.now() - (hours * 60 * 60 * 1000);
+    const result = await db.execute('SELECT * FROM guild_attacks WHERE (attacker_guild_id = ? OR target_guild_id = ?) AND timestamp > ?', [guildId, guildId, since]);
+    return result.rows || [];
+  } catch (error) {
+    console.error('Erreur getGuildRecentAttacks:', error);
+    return [];
+  }
 }
 
 async function activateGuildDefense(guildId, defenseType, durationHours) {
@@ -683,9 +799,14 @@ async function activateGuildDefense(guildId, defenseType, durationHours) {
 }
 
 async function hasActiveDefense(guildId, defenseType) {
-  const now = Date.now();
-  const result = await db.execute('SELECT * FROM guild_defenses WHERE guild_id = ? AND defense_type = ? AND expires_at > ?', [guildId, defenseType, now]);
-  return result.rows.length > 0;
+  try {
+    const now = Date.now();
+    const result = await db.execute('SELECT * FROM guild_defenses WHERE guild_id = ? AND defense_type = ? AND expires_at > ?', [guildId, defenseType, now]);
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error('Erreur hasActiveDefense:', error);
+    return false;
+  }
 }
 
 async function recordGuildContribution(guildId, userId, amount) {
@@ -694,8 +815,13 @@ async function recordGuildContribution(guildId, userId, amount) {
 }
 
 async function getGuildContributions(guildId, limit = 10) {
-  const result = await db.execute('SELECT * FROM guild_contributions WHERE guild_id = ? ORDER BY timestamp DESC LIMIT ?', [guildId, limit]);
-  return result.rows;
+  try {
+    const result = await db.execute('SELECT * FROM guild_contributions WHERE guild_id = ? ORDER BY timestamp DESC LIMIT ?', [guildId, limit]);
+    return result.rows || [];
+  } catch (error) {
+    console.error('Erreur getGuildContributions:', error);
+    return [];
+  }
 }
 
 async function proposeAlliance(guild1Id, guild2Id) {
@@ -704,17 +830,37 @@ async function proposeAlliance(guild1Id, guild2Id) {
 }
 
 async function getAllianceBetweenGuilds(guild1Id, guild2Id) {
-  const result = await db.execute(`
-    SELECT * FROM guild_alliances 
-    WHERE ((guild1_id = ? AND guild2_id = ?) OR (guild1_id = ? AND guild2_id = ?)) 
-    AND status IN ('pending', 'active')
-  `, [guild1Id, guild2Id, guild2Id, guild1Id]);
-  return result.rows[0];
+  try {
+    const result = await db.execute(`
+      SELECT * FROM guild_alliances 
+      WHERE ((guild1_id = ? AND guild2_id = ?) OR (guild1_id = ? AND guild2_id = ?)) 
+      AND status IN ('pending', 'active')
+    `, [guild1Id, guild2Id, guild2Id, guild1Id]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Erreur getAllianceBetweenGuilds:', error);
+    return null;
+  }
 }
 
 async function getGuild(guildId) {
-  const result = await db.execute('SELECT * FROM guilds WHERE id = ?', [guildId]);
-  return result.rows[0];
+  try {
+    const result = await db.execute('SELECT * FROM guilds WHERE id = ?', [guildId]);
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Erreur getGuild:', error);
+    return null;
+  }
+}
+
+// Execute raw SQL (for stats and complex queries)
+async function execute(sql, params = []) {
+  try {
+    return await db.execute(sql, params);
+  } catch (error) {
+    console.error('Erreur execute:', error);
+    throw error;
+  }
 }
 
 export default {
@@ -777,5 +923,6 @@ export default {
   getGuildContributions,
   proposeAlliance,
   getAllianceBetweenGuilds,
-  getGuild
+  getGuild,
+  execute
 };

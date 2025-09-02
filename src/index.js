@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Collection, Partials } from 'discord.js';
+import { Client, GatewayIntentBits, Collection, Partials, ActivityType } from 'discord.js';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
@@ -13,13 +13,20 @@ import db from './db.js';
 dotenv.config();
 
 const token = process.env.DISCORD_TOKEN;
-if (!token) {
-  console.error('DISCORD_TOKEN manquant dans le fichier .env');
+if (!token || token === 'your_discord_bot_token_here') {
+  console.error('❌ DISCORD_TOKEN manquant ou invalide dans le fichier .env');
+  console.error('📝 Configurez vos tokens Discord dans .env');
   process.exit(1);
 }
 
 // Initialize database
-await db.init();
+try {
+  await db.init();
+  console.log('✅ Base de données initialisée');
+} catch (error) {
+  console.error('❌ Erreur initialisation DB:', error);
+  process.exit(1);
+}
 
 // Create client
 const client = new Client({
@@ -56,61 +63,89 @@ client.once('clientReady', () => {
     try {
       const statuses = [
         async () => {
-          const total = await db.getTotalCirculation();
-          const gkc = (total / 100).toLocaleString('fr-FR', { 
-            minimumFractionDigits: 0, 
-            maximumFractionDigits: 0 
-          });
-          return { name: `💰 ${gkc} Ǥ en circulation`, type: 3 };
-        },
-        async () => {
-          const price = getCurrentCryptoPrice();
-          const btgPrice = (price / 100).toLocaleString('fr-FR', { 
-            minimumFractionDigits: 0, 
-            maximumFractionDigits: 0 
-          });
-          const trend = price > 50000 ? '📈' : '📉';
-          return { name: `${trend} ${btgPrice} Ǥ/BitGrok`, type: 3 };
-        },
-        async () => {
-          const totalUsersResult = await db.execute('SELECT COUNT(*) as count FROM users');
-          const users = totalUsersResult.rows[0].count;
-          return { name: `👥 ${users.toLocaleString()} citoyens actifs`, type: 3 };
-        },
-        async () => {
-          const event = getEvent();
-          if (event) {
-            const timeLeft = Math.max(1, Math.floor((event.endsAt - Date.now()) / 3600000));
-            return { name: `🔥 ${event.name} (${timeLeft}h)`, type: 3 };
-          } else {
-            return { name: `🏙️ GrokCity • /start pour commencer`, type: 3 };
+          try {
+            const total = await db.getTotalCirculation();
+            const gkc = (total / 100).toLocaleString('fr-FR', { 
+              minimumFractionDigits: 0, 
+              maximumFractionDigits: 0 
+            });
+            return { name: `💰 ${gkc} Ǥ en circulation`, type: ActivityType.Watching };
+          } catch {
+            return { name: `💎 GrokCity • /start`, type: ActivityType.Playing };
           }
         },
         async () => {
-          const guildsResult = await db.execute('SELECT COUNT(*) as count FROM guilds');
-          const guilds = guildsResult.rows[0].count;
-          const warsResult = await db.execute('SELECT COUNT(*) as count FROM guild_wars WHERE status = "active"');
-          const wars = warsResult.rows[0].count;
-          return { name: `🏛️ ${guilds} guildes • ${wars} guerres`, type: 3 };
+          try {
+            const price = getCurrentCryptoPrice();
+            const btgPrice = (price / 100).toLocaleString('fr-FR', { 
+              minimumFractionDigits: 0, 
+              maximumFractionDigits: 0 
+            });
+            const trend = price > 50000 ? '📈' : '📉';
+            return { name: `${trend} ${btgPrice} Ǥ/BitGrok`, type: ActivityType.Watching };
+          } catch {
+            return { name: `₿ BitGrok Trading • /crypto`, type: ActivityType.Playing };
+          }
         },
         async () => {
-          const vipResult = await db.execute('SELECT COUNT(*) as count FROM users WHERE vip_tier IS NOT NULL');
-          const vipUsers = vipResult.rows[0].count;
-          return { name: `💎 ${vipUsers} joueurs VIP`, type: 3 };
+          try {
+            const totalUsersResult = await db.execute('SELECT COUNT(*) as count FROM users');
+            const users = totalUsersResult.rows[0]?.count || 0;
+            return { name: `👥 ${users.toLocaleString()} citoyens actifs`, type: ActivityType.Watching };
+          } catch {
+            return { name: `👥 Économie virtuelle • /dashboard`, type: ActivityType.Playing };
+          }
         },
         async () => {
-          const richResult = await db.execute('SELECT COUNT(*) as count FROM users WHERE balance + bank_balance >= 100000');
-          const richUsers = richResult.rows[0].count;
-          return { name: `🤑 ${richUsers} millionnaires`, type: 3 };
+          try {
+            const event = getEvent();
+            if (event) {
+              const timeLeft = Math.max(1, Math.floor((event.endsAt - Date.now()) / 3600000));
+              return { name: `🔥 ${event.name} (${timeLeft}h)`, type: ActivityType.Watching };
+            } else {
+              return { name: `🏙️ GrokCity • /start pour commencer`, type: ActivityType.Playing };
+            }
+          } catch {
+            return { name: `🌍 Événements économiques • /event`, type: ActivityType.Playing };
+          }
         },
         async () => {
-          return { name: `🎰 Casino VIP • /casino`, type: 3 };
+          try {
+            const guildsResult = await db.execute('SELECT COUNT(*) as count FROM guilds');
+            const guilds = guildsResult.rows[0]?.count || 0;
+            const warsResult = await db.execute('SELECT COUNT(*) as count FROM guild_wars WHERE status = "active"');
+            const wars = warsResult.rows[0]?.count || 0;
+            return { name: `🏛️ ${guilds} guildes • ${wars} guerres`, type: ActivityType.Competing };
+          } catch {
+            return { name: `🏛️ Guildes PvP • /guild`, type: ActivityType.Playing };
+          }
         },
         async () => {
-          return { name: `⚔️ Guildes PvP • /guild`, type: 3 };
+          try {
+            const vipResult = await db.execute('SELECT COUNT(*) as count FROM users WHERE vip_tier IS NOT NULL');
+            const vipUsers = vipResult.rows[0]?.count || 0;
+            return { name: `💎 ${vipUsers} joueurs VIP`, type: ActivityType.Watching };
+          } catch {
+            return { name: `🎰 Casino VIP • /casino`, type: ActivityType.Playing };
+          }
         },
         async () => {
-          return { name: `🏠 Immobilier • /immo`, type: 3 };
+          try {
+            const richResult = await db.execute('SELECT COUNT(*) as count FROM users WHERE balance + bank_balance >= 100000');
+            const richUsers = richResult.rows[0]?.count || 0;
+            return { name: `🤑 ${richUsers} millionnaires`, type: ActivityType.Watching };
+          } catch {
+            return { name: `💰 Devenez riche • /job`, type: ActivityType.Playing };
+          }
+        },
+        async () => {
+          return { name: `🎰 Casino sans limites • /casino`, type: ActivityType.Playing };
+        },
+        async () => {
+          return { name: `⚔️ Guerres de guildes • /guild war`, type: ActivityType.Competing };
+        },
+        async () => {
+          return { name: `🏠 Investissement immo • /immo`, type: ActivityType.Playing };
         }
       ];
       
@@ -125,15 +160,19 @@ client.once('clientReady', () => {
     } catch (err) {
       console.error('Erreur Rich Presence:', err.message);
       // Fallback status simple
-      client.user.setPresence({
-        activities: [{ name: `💎 GrokCity • /start`, type: 3 }],
-        status: 'online'
-      });
+      try {
+        client.user.setPresence({
+          activities: [{ name: `💎 GrokCity • /start`, type: ActivityType.Playing }],
+          status: 'online'
+        });
+      } catch (fallbackError) {
+        console.error('Erreur fallback presence:', fallbackError);
+      }
     }
   }
   
   updatePresence();
-  setInterval(updatePresence, 2 * 60 * 1000); // Rotation toutes les 2 minutes
+  setInterval(updatePresence, 3 * 60 * 1000); // Rotation toutes les 3 minutes
 });
 
 client.on('interactionCreate', async interaction => {
