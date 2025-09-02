@@ -2,6 +2,7 @@ import { Client, GatewayIntentBits, Collection, Partials } from 'discord.js';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import path from 'path';
+import { getEvent, getCurrentCryptoPrice } from './events.js';
 
 // Load configuration
 const configPath = new URL('./config.json', import.meta.url);
@@ -59,18 +60,66 @@ for (const file of commandFiles) {
 
 client.once('clientReady', () => {
   console.log(`🚀 Bot connecté: ${client.user.tag}`);
+  console.log(`📊 Serveurs: ${client.guilds.cache.size}`);
+  console.log(`👥 Utilisateurs: ${client.users.cache.size}`);
   
-  // Update presence
+  // Rich Presence amélioré
   function updatePresence() {
     try {
-      const total = db.getTotalCirculation();
-      const gkc = (total / 100).toLocaleString('fr-FR', { 
-        minimumFractionDigits: 2, 
-        maximumFractionDigits: 2 
-      });
-      client.user.setPresence({
-        activities: [{ name: `💎 ${gkc} GKC en circulation`, type: 3 }],
-        status: 'online'
+      // Rotation des statuts toutes les 2 minutes
+      const statuses = [
+        async () => {
+          const total = await db.getTotalCirculation();
+          const gkc = (total / 100).toLocaleString('fr-FR', { 
+            minimumFractionDigits: 0, 
+            maximumFractionDigits: 0 
+          });
+          return { name: `💎 ${gkc} Ǥ en circulation`, type: 3 };
+        },
+        async () => {
+          const price = getCurrentCryptoPrice();
+          const btgPrice = (price / 100).toLocaleString('fr-FR', { 
+            minimumFractionDigits: 0, 
+            maximumFractionDigits: 0 
+          });
+          return { name: `₿ BitGrok: ${btgPrice} Ǥ`, type: 3 };
+        },
+        async () => {
+          const totalUsersResult = await db.execute('SELECT COUNT(*) as count FROM users');
+          const users = totalUsersResult.rows[0].count;
+          return { name: `👥 ${users} citoyens actifs`, type: 3 };
+        },
+        async () => {
+          const event = getEvent();
+          if (event) {
+            const timeLeft = Math.floor((event.endsAt - Date.now()) / 3600000);
+            return { name: `🔥 ${event.name} (${timeLeft}h)`, type: 3 };
+          } else {
+            return { name: `🏙️ GrokCity • /start pour commencer`, type: 3 };
+          }
+        },
+        async () => {
+          const guildsResult = await db.execute('SELECT COUNT(*) as count FROM guilds');
+          const guilds = guildsResult.rows[0].count;
+          const warsResult = await db.execute('SELECT COUNT(*) as count FROM guild_wars WHERE status = "active"');
+          const wars = warsResult.rows[0].count;
+          return { name: `🏛️ ${guilds} guildes • ${wars} guerres`, type: 3 };
+        }
+      ];
+      
+      const statusIndex = Math.floor(Date.now() / 120000) % statuses.length;
+      statuses[statusIndex]().then(activity => {
+        client.user.setPresence({
+          activities: [activity],
+          status: 'online'
+        });
+      }).catch(err => {
+        console.error('Erreur Rich Presence:', err.message);
+        // Fallback status
+        client.user.setPresence({
+          activities: [{ name: `💎 GrokCity • /start`, type: 3 }],
+          status: 'online'
+        });
       });
     } catch (err) {
       console.error('Erreur Rich Presence:', err.message);
@@ -78,7 +127,7 @@ client.once('clientReady', () => {
   }
   
   updatePresence();
-  setInterval(updatePresence, 10 * 60 * 1000); // Optimisé: toutes les 10 minutes
+  setInterval(updatePresence, 2 * 60 * 1000); // Toutes les 2 minutes pour rotation
   
   // Nettoyage du cache toutes les 5 minutes
   setInterval(() => {
@@ -88,18 +137,6 @@ client.once('clientReady', () => {
 
 client.on('interactionCreate', async interaction => {
   if (!interaction.isChatInputCommand() && !interaction.isButton() && !interaction.isStringSelectMenu()) return;
-  
-  // Handle button and select menu interactions
-  if (interaction.isButton() || interaction.isStringSelectMenu()) {
-    // Gestion optimisée des interactions
-    try {
-      // Les interactions sont gérées par les collecteurs dans chaque commande
-      return;
-    } catch (error) {
-      console.error('Erreur interaction:', error);
-    }
-    return;
-  }
   
   // Handle slash commands
   if (interaction.isChatInputCommand()) {
@@ -111,6 +148,7 @@ client.on('interactionCreate', async interaction => {
       await command.execute(interaction, db, config);
     } catch (error) {
       console.error(`❌ Erreur commande ${interaction.commandName}:`, error.message);
+      console.error('Stack trace:', error.stack);
       
       const errorMessage = {
         content: '❌ Une erreur est survenue lors de l\'exécution de la commande.',
@@ -130,6 +168,19 @@ client.on('interactionCreate', async interaction => {
   }
 });
 
+// Graceful shutdown
+process.on('SIGINT', async () => {
+  console.log('🛑 Arrêt du bot...');
+  client.destroy();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('🛑 Arrêt du bot (SIGTERM)...');
+  client.destroy();
+  process.exit(0);
+});
+
 // Error handling
 process.on('unhandledRejection', (reason, promise) => {
   console.error('❌ Unhandled Rejection:', reason);
@@ -137,6 +188,7 @@ process.on('unhandledRejection', (reason, promise) => {
 
 process.on('uncaughtException', (error) => {
   console.error('❌ Uncaught Exception:', error);
+  process.exit(1);
 });
 
 client.login(token);

@@ -7,17 +7,23 @@
   "scripts": {
     "start": "node src/index.js",
     "register:commands": "node src/register-commands.js",
-    "dev": "node --watch src/index.js",
+    "dev": "NODE_ENV=development node --watch src/index.js",
     "test": "node src/test.js",
     "backup": "cp grokcoin.db backup_$(date +%Y%m%d_%H%M%S).db",
-    "rebuild": "npm rebuild better-sqlite3",
+    "clean": "rm -rf node_modules package-lock.json",
     "fresh-install": "rm -rf node_modules package-lock.json && npm install",
-    "prod": "NODE_ENV=production node src/index.js",
+    "prod": "NODE_ENV=production npm start",
     "deploy": "bash deploy.sh",
     "pm2:start": "pm2 start ecosystem.config.js",
     "pm2:stop": "pm2 stop grokcoin-bot",
     "pm2:restart": "pm2 restart grokcoin-bot",
-    "pm2:logs": "pm2 logs grokcoin-bot"
+    "pm2:logs": "pm2 logs grokcoin-bot",
+    "pm2:delete": "pm2 delete grokcoin-bot",
+    "pm2:reload": "pm2 reload grokcoin-bot",
+    "pm2:monit": "pm2 monit",
+    "pm2:status": "pm2 status",
+    "logs": "tail -f logs/*.log",
+    "health": "curl -f http://localhost:3000/health || echo 'Bot offline'"
   },
   "dependencies": {
     "@libsql/client": "^0.15.14",
