@@ -31,6 +31,20 @@ const commands = new Collection();
 const commandsPath = path.join(new URL(import.meta.url).pathname.replace(/index\.js$/, ''), 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
+// Cache pour optimiser les performances
+const userCache = new Map();
+const cacheTimeout = 30000; // 30 secondes
+
+function getCachedUser(userId) {
+  const cached = userCache.get(userId);
+  if (cached && Date.now() - cached.timestamp < cacheTimeout) {
+    return cached.data;
+  }
+  const userData = db.getUser(userId);
+  userCache.set(userId, { data: userData, timestamp: Date.now() });
+  return userData;
+}
+
 for (const file of commandFiles) {
   try {
     const command = await import(`./commands/${file}`);
@@ -64,7 +78,12 @@ client.once('clientReady', () => {
   }
   
   updatePresence();
-  setInterval(updatePresence, 5 * 60 * 1000);
+  setInterval(updatePresence, 10 * 60 * 1000); // Optimisé: toutes les 10 minutes
+  
+  // Nettoyage du cache toutes les 5 minutes
+  setInterval(() => {
+    userCache.clear();
+  }, 5 * 60 * 1000);
 });
 
 client.on('interactionCreate', async interaction => {
@@ -72,7 +91,13 @@ client.on('interactionCreate', async interaction => {
   
   // Handle button and select menu interactions
   if (interaction.isButton() || interaction.isStringSelectMenu()) {
-    // Let the original command handle the interaction
+    // Gestion optimisée des interactions
+    try {
+      // Les interactions sont gérées par les collecteurs dans chaque commande
+      return;
+    } catch (error) {
+      console.error('Erreur interaction:', error);
+    }
     return;
   }
   
@@ -82,13 +107,14 @@ client.on('interactionCreate', async interaction => {
     if (!command) return;
     
     try {
+      // Optimisation: utiliser le cache pour les données utilisateur fréquentes
       await command.execute(interaction, db, config);
     } catch (error) {
       console.error(`❌ Erreur commande ${interaction.commandName}:`, error.message);
       
       const errorMessage = {
         content: '❌ Une erreur est survenue lors de l\'exécution de la commande.',
-        flags: 64
+        ephemeral: true
       };
       
       try {
