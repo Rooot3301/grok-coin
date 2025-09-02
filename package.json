@@ -22,7 +22,7 @@
     "pm2:reload": "pm2 reload grokcoin-bot",
     "pm2:monit": "pm2 monit",
     "pm2:status": "pm2 status",
-    "pm2:flush": "pm2 flush grokcoin-bot"
+    "pm2:flush": "pm2 flush grokcoin-bot",
     "logs": "tail -f logs/*.log",
     "health": "curl -f http://localhost:3000/health || echo 'Bot offline'"
   },
