@@ -20,8 +20,8 @@
     "pm2:logs": "pm2 logs grokcoin-bot"
   },
   "dependencies": {
+    "@libsql/client": "^0.15.14",
     "discord.js": "^14.9.0",
-    "better-sqlite3": "^8.5.3",
     "dotenv": "^16.1.4"
   },
   "engines": {
