@@ -2,7 +2,7 @@ module.exports = {
   apps: [{
     name: 'grokcoin-bot',
     script: 'src/index.js',
-    instances: 1, // Bot Discord = 1 seule instance
+    instances: 1,
     autorestart: true,
     watch: false,
     max_memory_restart: '512M',
@@ -25,6 +25,9 @@ module.exports = {
     merge_logs: true,
     kill_timeout: 5000,
     listen_timeout: 8000,
-    shutdown_with_message: true
+    shutdown_with_message: true,
+    // Configuration spécifique pour ES modules
+    node_args: '--experimental-modules',
+    exec_mode: 'fork'
   }]
 };

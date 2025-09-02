@@ -16,7 +16,7 @@ npm run register:commands
 
 # Redémarrer
 echo "🚀 Redémarrage..."
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.cjs
 
 echo "✅ Déploiement rapide terminé !"
 pm2 status

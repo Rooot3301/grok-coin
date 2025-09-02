@@ -29,7 +29,7 @@ fi
 
 # Démarrer avec PM2
 echo "⚡ Démarrage avec PM2..."
-pm2 start ecosystem.config.js
+pm2 start ecosystem.config.cjs
 
 echo ""
 echo "✅ Bot démarré en production !"
